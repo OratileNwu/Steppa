@@ -7,10 +7,14 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
-  View,
+  View
 } from "react-native";
+
+import { AppCard } from "@/components/AppCard";
+import { AppText } from "@/components/AppText";
+import { AppTextInput } from "@/components/AppTextInput";
+import { PrimaryButton } from "@/components/PrimaryButton";
+import { StatusBadge } from "@/components/StatusBadge";
 
 import {
   colors,
@@ -19,7 +23,7 @@ import {
   spacing,
   statusStyles,
   typography,
-} from "../../theme";
+} from "@/theme";
 
 type CategoryId = "groceries" | "parcel" | "queue" | "other";
 type ErrandStatus = keyof typeof statusStyles;
@@ -54,6 +58,7 @@ type Props = {
   activeErrand?: StepperErrand | null;
   notifications?: StepperNotification[];
   loading?: boolean;
+
   onSaveLocation?: (value: string) => Promise<void> | void;
   onSubmitQueue?: (request: QueueRequest) => Promise<void> | void;
   onRequestErrand?: (category: CategoryId) => void;
@@ -66,25 +71,48 @@ type Props = {
 };
 
 const categories = [
-  { id: "groceries", label: "Groceries", icon: "basket-outline" },
-  { id: "parcel", label: "Parcels", icon: "cube-outline" },
-  { id: "queue", label: "Queue", icon: "people-outline" },
-  { id: "other", label: "Other", icon: "ellipsis-horizontal" },
+  {
+    id: "groceries",
+    label: "Groceries",
+    icon: "basket-outline",
+  },
+  {
+    id: "parcel",
+    label: "Parcels",
+    icon: "cube-outline",
+  },
+  {
+    id: "queue",
+    label: "Queue",
+    icon: "people-outline",
+  },
+  {
+    id: "other",
+    label: "Other",
+    icon: "ellipsis-horizontal",
+  },
+] as const;
+
+const progressSteps = [
+  "requested",
+  "accepted",
+  "in_progress",
+  "completed",
 ] as const;
 
 function RequestButton({
-  onPress,
   title,
+  onPress,
 }: {
-  onPress: () => void;
   title: string;
+  onPress: () => void;
 }) {
   const scale = useRef(new Animated.Value(1)).current;
-  const [hover, setHover] = useState(false);
+  const [hovered, setHovered] = useState(false);
 
-  function animate(value: number) {
+  function animate(toValue: number) {
     Animated.spring(scale, {
-      toValue: value,
+      toValue,
       friction: 7,
       tension: 130,
       useNativeDriver: Platform.OS !== "web",
@@ -95,20 +123,21 @@ function RequestButton({
     <Animated.View style={{ transform: [{ scale }] }}>
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel={title}
         onPress={onPress}
         onHoverIn={() => {
-          setHover(true);
+          setHovered(true);
           animate(1.01);
         }}
         onHoverOut={() => {
-          setHover(false);
+          setHovered(false);
           animate(1);
         }}
         onPressIn={() => animate(0.97)}
         onPressOut={() => animate(1)}
         style={[
           styles.requestButton,
-          hover && styles.requestButtonHover,
+          hovered && styles.requestButtonHover,
         ]}
       >
         <Ionicons
@@ -116,7 +145,11 @@ function RequestButton({
           size={21}
           color={colors.primary}
         />
-        <Text style={styles.requestButtonText}>{title}</Text>
+
+        <AppText style={styles.requestButtonText}>
+          {title}
+        </AppText>
+
         <Ionicons
           name="arrow-forward"
           size={19}
@@ -151,27 +184,34 @@ export default function StepperDashboard({
   const [hoveredCard, setHoveredCard] = useState("");
   const [notice, setNotice] = useState("");
 
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] =
+    useState(false);
+
   const [locationOpen, setLocationOpen] = useState(false);
   const [locationDraft, setLocationDraft] = useState("");
-  const [localLocation, setLocalLocation] = useState<string | null>(null);
+  const [localLocation, setLocalLocation] =
+    useState<string | null>(null);
   const [savingLocation, setSavingLocation] = useState(false);
 
   const [queueOpen, setQueueOpen] = useState(false);
   const [queueLocation, setQueueLocation] = useState("");
   const [queuePurpose, setQueuePurpose] = useState("");
-  const [queueInstructions, setQueueInstructions] = useState("");
-  const [queueSubmitting, setQueueSubmitting] = useState(false);
+  const [queueInstructions, setQueueInstructions] =
+    useState("");
+  const [queueSubmitting, setQueueSubmitting] =
+    useState(false);
 
   const firstName = userName?.trim().split(/\s+/)[0];
   const currentLocation = localLocation || location;
-  const unreadCount = notifications.filter((item) => !item.read).length;
-  const status = activeErrand
-    ? statusStyles[activeErrand.status]
-    : null;
+
+  const unreadCount = notifications.filter(
+    (item) => !item.read
+  ).length;
 
   const matchingCategories = categories.filter((item) =>
-    item.label.toLowerCase().includes(search.trim().toLowerCase())
+    item.label
+      .toLowerCase()
+      .includes(search.trim().toLowerCase())
   );
 
   function unavailable(feature: string) {
@@ -226,7 +266,9 @@ export default function StepperDashboard({
       setLocationOpen(false);
       setNotice("Location updated.");
     } catch {
-      setNotice("Unable to save location. Please try again.");
+      setNotice(
+        "Unable to save location. Please try again."
+      );
     } finally {
       setSavingLocation(false);
     }
@@ -239,7 +281,9 @@ export default function StepperDashboard({
     const purpose = queuePurpose.trim();
 
     if (!place || !purpose) {
-      setNotice("Queue location and purpose are required.");
+      setNotice(
+        "Queue location and purpose are required."
+      );
       return;
     }
 
@@ -260,13 +304,16 @@ export default function StepperDashboard({
         purpose,
         instructions: queueInstructions.trim(),
       });
+
       setQueueOpen(false);
       setQueueLocation("");
       setQueuePurpose("");
       setQueueInstructions("");
       setNotice("Queue request submitted.");
     } catch {
-      setNotice("Queue submission failed. Please try again.");
+      setNotice(
+        "Queue submission failed. Please try again."
+      );
     } finally {
       setQueueSubmitting(false);
     }
@@ -279,19 +326,22 @@ export default function StepperDashboard({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+        {/* HEADER */}
         <View style={styles.header}>
           <View style={styles.flex}>
-            <Text style={styles.brand}>
+            <AppText style={styles.brand}>
               YOUR NEIGHBOURHOOD. ON THE MOVE.
-            </Text>
-            <Text style={styles.heading}>
+            </AppText>
+
+            <AppText style={styles.heading}>
               {firstName
                 ? `Welcome back, ${firstName}.`
                 : "Welcome to STEPPA."}
-            </Text>
+            </AppText>
 
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Select location"
               style={styles.locationRow}
               onPress={() => {
                 setLocationDraft(currentLocation || "");
@@ -304,9 +354,11 @@ export default function StepperDashboard({
                 size={17}
                 color={colors.primary}
               />
-              <Text style={styles.locationText}>
+
+              <AppText style={styles.locationText}>
                 {currentLocation || "Set your location"}
-              </Text>
+              </AppText>
+
               <Ionicons
                 name="chevron-down"
                 size={14}
@@ -330,6 +382,7 @@ export default function StepperDashboard({
                 size={22}
                 color={colors.primary}
               />
+
               {unreadCount > 0 && (
                 <View style={styles.notificationDot} />
               )}
@@ -354,48 +407,52 @@ export default function StepperDashboard({
           </View>
         </View>
 
-        {/* Location picker */}
+        {/* LOCATION PICKER */}
         {locationOpen && (
-          <View style={styles.panel}>
-            <Text style={styles.sectionTitle}>
+          <AppCard style={styles.panel}>
+            <AppText variant="heading" style={styles.sectionTitle}>
               Choose your location
-            </Text>
-            <Text style={styles.muted}>
-              Enter your neighbourhood or address.
-            </Text>
+            </AppText>
 
-            <TextInput
-              accessibilityLabel="Location"
-              style={styles.input}
+            <AppText variant="secondary">
+              Enter your neighbourhood or address.
+            </AppText>
+
+            <AppTextInput
+              label="Your location"
               value={locationDraft}
               onChangeText={setLocationDraft}
               placeholder="Enter a location"
-              placeholderTextColor={colors.textSecondary}
             />
 
-            <Pressable
-              accessibilityRole="button"
-              style={styles.greenButton}
-              disabled={savingLocation}
+            <PrimaryButton
+              title="Use this location"
+              loading={savingLocation}
               onPress={saveLocation}
-            >
-              <Text style={styles.greenButtonText}>
-                {savingLocation ? "Saving..." : "Use this location"}
-              </Text>
-            </Pressable>
+            />
 
-            <Text style={styles.muted}>
-              This is a manually entered location, not a verified map pin.
-            </Text>
-          </View>
+            <AppText variant="small">
+              This is a manually entered location,
+              not a verified map pin.
+            </AppText>
+          </AppCard>
         )}
 
-        {/* Notifications */}
+        {/* NOTIFICATIONS */}
         {notificationsOpen && (
-          <View style={styles.panel}>
+          <AppCard style={styles.panel}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Notifications</Text>
-              <Pressable onPress={() => setNotificationsOpen(false)}>
+              <AppText
+                variant="heading"
+                style={styles.sectionTitle}
+              >
+                Notifications
+              </AppText>
+
+              <Pressable
+                accessibilityLabel="Close notifications"
+                onPress={() => setNotificationsOpen(false)}
+              >
                 <Ionicons
                   name="close"
                   size={20}
@@ -405,20 +462,27 @@ export default function StepperDashboard({
             </View>
 
             {loading ? (
-              <Text style={styles.muted}>Loading notifications...</Text>
+              <AppText variant="secondary">
+                Loading notifications...
+              </AppText>
             ) : notifications.length === 0 ? (
-              <View style={styles.emptyPanel}>
+              <View style={styles.emptyContent}>
                 <Ionicons
                   name="notifications-off-outline"
                   size={30}
                   color={colors.primary}
                 />
-                <Text style={styles.emptyTitle}>
+
+                <AppText style={styles.emptyTitle}>
                   No notifications to display
-                </Text>
-                <Text style={styles.muted}>
+                </AppText>
+
+                <AppText
+                  variant="secondary"
+                  style={styles.centerText}
+                >
                   Updates will appear here when connected.
-                </Text>
+                </AppText>
               </View>
             ) : (
               notifications.map((item) => (
@@ -428,7 +492,9 @@ export default function StepperDashboard({
                   onPress={() =>
                     onOpenNotification
                       ? onOpenNotification(item.id)
-                      : unavailable("Notification details")
+                      : unavailable(
+                          "Notification details"
+                        )
                   }
                 >
                   <Ionicons
@@ -440,31 +506,41 @@ export default function StepperDashboard({
                     size={22}
                     color={colors.primary}
                   />
+
                   <View style={styles.flex}>
-                    <Text style={styles.itemTitle}>{item.title}</Text>
-                    <Text style={styles.muted}>{item.message}</Text>
+                    <AppText style={styles.itemTitle}>
+                      {item.title}
+                    </AppText>
+
+                    <AppText variant="secondary">
+                      {item.message}
+                    </AppText>
                   </View>
-                  {!item.read && <View style={styles.unreadDot} />}
+
+                  {!item.read && (
+                    <View style={styles.unreadDot} />
+                  )}
                 </Pressable>
               ))
             )}
-          </View>
+          </AppCard>
         )}
 
-        {/* Search */}
+        {/* SEARCH */}
         <View style={styles.searchBar}>
           <Ionicons
             name="search-outline"
             size={21}
             color={colors.textSecondary}
           />
-          <TextInput
-            style={styles.searchInput}
+
+          <AppTextInput
             value={search}
             onChangeText={setSearch}
             placeholder="What do you need help with?"
-            placeholderTextColor={colors.textSecondary}
+            style={styles.searchInput}
           />
+
           {search.length > 0 && (
             <Pressable
               accessibilityLabel="Clear search"
@@ -479,36 +555,50 @@ export default function StepperDashboard({
           )}
         </View>
 
-        {/* Categories */}
+        {/* CATEGORIES */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
+          <AppText
+            variant="heading"
+            style={styles.sectionTitle}
+          >
             What can we help with?
-          </Text>
+          </AppText>
 
           <View style={styles.categoryRow}>
             {matchingCategories.map((category) => {
               const active = selected === category.id;
-              const hovered = hoveredCategory === category.id;
+              const hovered =
+                hoveredCategory === category.id;
 
               return (
                 <Pressable
                   key={category.id}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
+                  accessibilityState={{
+                    selected: active,
+                  }}
                   style={styles.category}
                   onPress={() => {
-                    setSelected(active ? null : category.id);
+                    setSelected(
+                      active ? null : category.id
+                    );
                     setQueueOpen(false);
                     setNotice("");
                   }}
-                  onHoverIn={() => setHoveredCategory(category.id)}
-                  onHoverOut={() => setHoveredCategory(null)}
+                  onHoverIn={() =>
+                    setHoveredCategory(category.id)
+                  }
+                  onHoverOut={() =>
+                    setHoveredCategory(null)
+                  }
                 >
                   <View
                     style={[
                       styles.categoryIcon,
-                      active && styles.categoryActive,
-                      hovered && styles.categoryHover,
+                      active &&
+                        styles.categoryActive,
+                      hovered &&
+                        styles.categoryHover,
                     ]}
                   >
                     <Ionicons
@@ -517,38 +607,42 @@ export default function StepperDashboard({
                       color={colors.primary}
                     />
                   </View>
-                  <Text
+
+                  <AppText
                     style={[
                       styles.categoryLabel,
-                      active && styles.categoryLabelActive,
+                      active &&
+                        styles.categoryLabelActive,
                     ]}
                   >
                     {category.label}
-                  </Text>
+                  </AppText>
                 </Pressable>
               );
             })}
           </View>
 
           {matchingCategories.length === 0 && (
-            <Text style={styles.muted}>
+            <AppText variant="secondary">
               No matching categories found.
-            </Text>
+            </AppText>
           )}
         </View>
 
-        {/* Main request card */}
+        {/* REQUEST ERRAND */}
         <View style={styles.featureCard}>
           <View style={styles.featureTop}>
             <View style={styles.flex}>
-              <Text style={styles.featureTitle}>
+              <AppText style={styles.featureTitle}>
                 Need a hand today?
-              </Text>
-              <Text style={styles.featureSubtitle}>
-                Get help with everyday tasks from people in
-                your neighbourhood.
-              </Text>
+              </AppText>
+
+              <AppText style={styles.featureSubtitle}>
+                Get help with everyday tasks from
+                people in your neighbourhood.
+              </AppText>
             </View>
+
             <View style={styles.peopleBadge}>
               <Ionicons
                 name="people-outline"
@@ -568,19 +662,32 @@ export default function StepperDashboard({
           />
 
           {selected && (
-            <Text style={styles.selectedHint}>
-              {categories.find((item) => item.id === selected)?.label}
-              {" "}selected
-            </Text>
+            <AppText style={styles.selectedHint}>
+              {
+                categories.find(
+                  (item) => item.id === selected
+                )?.label
+              }{" "}
+              selected
+            </AppText>
           )}
         </View>
 
-        {/* Queue form */}
+        {/* QUEUE FORM */}
         {queueOpen && (
-          <View style={styles.panel}>
+          <AppCard style={styles.panel}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Queue for me</Text>
-              <Pressable onPress={() => setQueueOpen(false)}>
+              <AppText
+                variant="heading"
+                style={styles.sectionTitle}
+              >
+                Queue for me
+              </AppText>
+
+              <Pressable
+                accessibilityLabel="Close queue form"
+                onPress={() => setQueueOpen(false)}
+              >
                 <Ionicons
                   name="close"
                   size={21}
@@ -589,61 +696,52 @@ export default function StepperDashboard({
               </Pressable>
             </View>
 
-            <Text style={styles.muted}>
-              Queue assistance depends on the organisation's rules.
-              A place in line may not be transferable.
-            </Text>
+            <AppText variant="secondary">
+              Queue assistance depends on the
+              organisation's rules. A place in line
+              may not be transferable.
+            </AppText>
 
-            <Text style={styles.fieldLabel}>Queue location *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Where is the queue?"
-              placeholderTextColor={colors.textSecondary}
+            <AppTextInput
+              label="Queue location *"
               value={queueLocation}
               onChangeText={setQueueLocation}
+              placeholder="Where is the queue?"
             />
 
-            <Text style={styles.fieldLabel}>Purpose *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="What should the runner queue for?"
-              placeholderTextColor={colors.textSecondary}
+            <AppTextInput
+              label="Purpose *"
               value={queuePurpose}
               onChangeText={setQueuePurpose}
+              placeholder="What should the runner queue for?"
             />
 
-            <Text style={styles.fieldLabel}>Instructions</Text>
-            <TextInput
-              style={[styles.input, styles.multiline]}
+            <AppTextInput
+              label="Additional instructions"
+              value={queueInstructions}
+              onChangeText={setQueueInstructions}
+              placeholder="No passwords or PINs"
               multiline
               numberOfLines={3}
               textAlignVertical="top"
-              placeholder="Additional details (no passwords or PINs)"
-              placeholderTextColor={colors.textSecondary}
-              value={queueInstructions}
-              onChangeText={setQueueInstructions}
+              style={styles.multiline}
             />
 
-            <Pressable
-              style={styles.greenButton}
-              disabled={queueSubmitting}
+            <PrimaryButton
+              title="Continue queue request"
+              loading={queueSubmitting}
               onPress={submitQueue}
-            >
-              <Text style={styles.greenButtonText}>
-                {queueSubmitting
-                  ? "Submitting..."
-                  : "Continue queue request"}
-              </Text>
-            </Pressable>
-          </View>
+            />
+          </AppCard>
         )}
 
-        {/* Wallet */}
+        {/* SIMULATED WALLET */}
         <Pressable
           accessibilityRole="button"
           style={[
-            styles.walletCard,
-            hoveredCard === "wallet" && styles.hoverCard,
+            styles.interactiveCard,
+            hoveredCard === "wallet" &&
+              styles.hoverCard,
           ]}
           onHoverIn={() => setHoveredCard("wallet")}
           onHoverOut={() => setHoveredCard("")}
@@ -660,17 +758,25 @@ export default function StepperDashboard({
               color={colors.primary}
             />
           </View>
+
           <View style={styles.flex}>
-            <Text style={styles.walletLabel}>SIMULATED WALLET</Text>
-            <Text style={styles.walletBalance}>
+            <AppText style={styles.walletLabel}>
+              SIMULATED WALLET
+            </AppText>
+
+            <AppText style={styles.walletBalance}>
               {loading
                 ? "Loading..."
                 : walletBalance == null
                 ? "Not available"
                 : `R${walletBalance.toFixed(2)}`}
-            </Text>
-            <Text style={styles.muted}>No real funds</Text>
+            </AppText>
+
+            <AppText variant="small">
+              No real funds
+            </AppText>
           </View>
+
           <Ionicons
             name="chevron-forward"
             size={20}
@@ -678,9 +784,15 @@ export default function StepperDashboard({
           />
         </Pressable>
 
-        {/* Active errand */}
+        {/* ACTIVE ERRAND HEADER */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Your active errand</Text>
+          <AppText
+            variant="heading"
+            style={styles.sectionTitle}
+          >
+            Your active errand
+          </AppText>
+
           <Pressable
             onPress={() =>
               onViewAllErrands
@@ -688,19 +800,26 @@ export default function StepperDashboard({
                 : unavailable("My Errands")
             }
           >
-            <Text style={styles.link}>View all</Text>
+            <AppText style={styles.link}>
+              View all
+            </AppText>
           </Pressable>
         </View>
 
+        {/* ACTIVE ERRAND CONTENT */}
         {loading ? (
-          <View style={styles.emptyPanel}>
-            <Text style={styles.muted}>Loading your errands...</Text>
-          </View>
-        ) : activeErrand && status ? (
+          <AppCard>
+            <AppText variant="secondary">
+              Loading your errands...
+            </AppText>
+          </AppCard>
+        ) : activeErrand ? (
           <Pressable
+            accessibilityRole="button"
             style={[
               styles.errandCard,
-              hoveredCard === "errand" && styles.hoverCard,
+              hoveredCard === "errand" &&
+                styles.hoverCard,
             ]}
             onHoverIn={() => setHoveredCard("errand")}
             onHoverOut={() => setHoveredCard("")}
@@ -712,95 +831,116 @@ export default function StepperDashboard({
           >
             <View style={styles.errandHeader}>
               <View style={styles.flex}>
-                <Text style={styles.itemTitle}>
+                <AppText style={styles.itemTitle}>
                   {activeErrand.title}
-                </Text>
+                </AppText>
+
                 {!!activeErrand.description && (
-                  <Text style={styles.muted}>
+                  <AppText variant="secondary">
                     {activeErrand.description}
-                  </Text>
+                  </AppText>
                 )}
               </View>
-              <View
-                style={[
-                  styles.statusBadge,
-                  { backgroundColor: status.backgroundColor },
-                ]}
-              >
-                <Text style={[styles.statusText, { color: status.color }]}>
-                  {status.label}
-                </Text>
-              </View>
+
+              <StatusBadge
+                status={activeErrand.status}
+              />
             </View>
 
+            {/* PROGRESS TRACKER */}
             <View style={styles.tracker}>
-              {(
-                ["requested", "accepted", "in_progress", "completed"] as const
-              ).map((step, index) => {
-                const steps = [
-                  "requested",
-                  "accepted",
-                  "in_progress",
-                  "completed",
-                ];
-                const currentIndex = steps.indexOf(activeErrand.status);
+              {progressSteps.map((step, index) => {
+                const currentIndex =
+                  progressSteps.indexOf(
+                    activeErrand.status as
+                      (typeof progressSteps)[number]
+                  );
+
                 const reached =
                   activeErrand.status !== "cancelled" &&
                   index <= currentIndex;
 
                 return (
-                  <View key={step} style={styles.trackerItem}>
+                  <View
+                    key={step}
+                    style={styles.trackerItem}
+                  >
                     <View
                       style={[
                         styles.trackerDot,
-                        reached && styles.trackerDotActive,
+                        reached &&
+                          styles.trackerDotActive,
                       ]}
                     />
-                    <Text style={styles.trackerLabel}>
+
+                    <AppText
+                      style={[
+                        styles.trackerLabel,
+                        reached &&
+                          styles.trackerLabelActive,
+                      ]}
+                    >
                       {statusStyles[step].label}
-                    </Text>
+                    </AppText>
                   </View>
                 );
               })}
             </View>
 
             <View style={styles.divider} />
+
             <View style={styles.sectionHeader}>
-              <Text style={styles.muted}>Estimated service fee</Text>
-              <Text style={styles.price}>
+              <AppText variant="secondary">
+                Estimated service fee
+              </AppText>
+
+              <AppText style={styles.price}>
                 {activeErrand.estimatedFee == null
                   ? "Pending"
                   : `R${activeErrand.estimatedFee.toFixed(2)}`}
-              </Text>
+              </AppText>
             </View>
           </Pressable>
         ) : (
-          <View style={styles.emptyPanel}>
+          <AppCard style={styles.emptyCard}>
             <Ionicons
               name="clipboard-outline"
               size={30}
               color={colors.primary}
             />
-            <Text style={styles.emptyTitle}>No active errands</Text>
-            <Text style={styles.muted}>
-              Your requests will appear here when connected.
-            </Text>
-          </View>
+
+            <AppText style={styles.emptyTitle}>
+              No active errands
+            </AppText>
+
+            <AppText
+              variant="secondary"
+              style={styles.centerText}
+            >
+              Your requests will appear here
+              when connected.
+            </AppText>
+          </AppCard>
         )}
 
-        {/* Help */}
+        {/* HELP */}
         <View style={styles.helpCard}>
           <Ionicons
             name="help-circle-outline"
             size={22}
             color={colors.primary}
           />
+
           <View style={styles.flex}>
-            <Text style={styles.itemTitle}>Need assistance?</Text>
-            <Text style={styles.muted}>
+            <AppText style={styles.itemTitle}>
+              Need assistance?
+            </AppText>
+
+            <AppText variant="secondary">
               Support and issue reporting
-            </Text>
+            </AppText>
           </View>
+
           <Pressable
             onPress={() =>
               onOpenHelp
@@ -808,10 +948,13 @@ export default function StepperDashboard({
                 : unavailable("Help centre")
             }
           >
-            <Text style={styles.link}>Get help ›</Text>
+            <AppText style={styles.link}>
+              Get help ›
+            </AppText>
           </Pressable>
         </View>
 
+        {/* INFORMATION NOTICE */}
         {notice !== "" && (
           <View style={styles.notice}>
             <Ionicons
@@ -819,8 +962,15 @@ export default function StepperDashboard({
               size={20}
               color={colors.info}
             />
-            <Text style={styles.noticeText}>{notice}</Text>
-            <Pressable onPress={() => setNotice("")}>
+
+            <AppText style={styles.noticeText}>
+              {notice}
+            </AppText>
+
+            <Pressable
+              accessibilityLabel="Dismiss message"
+              onPress={() => setNotice("")}
+            >
               <Ionicons
                 name="close"
                 size={18}
@@ -839,31 +989,42 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.surfaceMuted,
   },
+
   content: {
     width: "100%",
     maxWidth: 440,
     alignSelf: "center",
     paddingHorizontal: spacing.md,
-    paddingTop: Platform.OS === "web" ? 100 : spacing.lg,
+    paddingTop:
+      Platform.OS === "web"
+        ? 100
+        : spacing.lg,
     paddingBottom: spacing.xxl,
     gap: spacing.lg,
   },
-  flex: { flex: 1 },
+
+  flex: {
+    flex: 1,
+  },
+
   header: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
   },
+
   headerActions: {
     flexDirection: "row",
     gap: spacing.sm,
   },
+
   brand: {
     color: colors.primary,
     fontSize: typography.caption,
     fontWeight: "700",
     letterSpacing: 0.6,
   },
+
   heading: {
     color: colors.text,
     fontSize: typography.heading,
@@ -871,17 +1032,20 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     marginTop: spacing.xs,
   },
+
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
     marginTop: spacing.sm,
   },
+
   locationText: {
     color: colors.textSecondary,
     fontSize: typography.small,
     flexShrink: 1,
   },
+
   circleButton: {
     width: dimensions.iconButtonSize,
     height: dimensions.iconButtonSize,
@@ -890,6 +1054,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   notificationDot: {
     position: "absolute",
     top: spacing.sm,
@@ -899,53 +1064,28 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     backgroundColor: colors.error,
   },
+
   panel: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    padding: spacing.md,
     gap: spacing.md,
   },
-  input: {
-    minHeight: dimensions.inputHeight,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    color: colors.text,
-    fontSize: typography.small,
-    backgroundColor: colors.inputBackground,
+
+  section: {
+    gap: spacing.md,
   },
-  multiline: {
-    minHeight: 96,
-    paddingVertical: spacing.md,
-  },
-  greenButton: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    minHeight: dimensions.buttonHeight,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: spacing.md,
-  },
-  greenButtonText: {
-    color: colors.textOnPrimary,
-    fontSize: typography.small,
-    fontWeight: "700",
-  },
+
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: spacing.sm,
   },
-  section: { gap: spacing.md },
+
   sectionTitle: {
     color: colors.text,
     fontSize: typography.body,
     fontWeight: "700",
   },
+
   searchBar: {
     minHeight: dimensions.inputHeight,
     backgroundColor: colors.surface,
@@ -954,26 +1094,31 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     gap: spacing.sm,
   },
+
   searchInput: {
     flex: 1,
-    minHeight: dimensions.inputHeight,
-    color: colors.text,
-    fontSize: typography.small,
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    paddingHorizontal: 0,
+    minHeight: 42,
   },
+
   categoryRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm,
   },
+
   category: {
     flexGrow: 1,
     flexBasis: "20%",
     alignItems: "center",
     gap: spacing.sm,
   },
+
   categoryIcon: {
     width: dimensions.inputHeight,
     height: dimensions.inputHeight,
@@ -984,46 +1129,55 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   categoryActive: {
     backgroundColor: colors.successBackground,
     borderColor: colors.primary,
     borderWidth: 2,
   },
+
   categoryHover: {
     borderColor: colors.primary,
     transform: [{ translateY: -2 }],
   },
+
   categoryLabel: {
     fontSize: typography.caption,
     color: colors.text,
     textAlign: "center",
   },
+
   categoryLabelActive: {
     color: colors.primary,
     fontWeight: "700",
   },
+
   featureCard: {
     backgroundColor: colors.primary,
     borderRadius: radius.lg,
     padding: spacing.md,
     gap: spacing.md,
   },
+
   featureTop: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
   },
+
   featureTitle: {
     color: colors.textOnPrimary,
     fontSize: typography.subtitle,
     fontWeight: "700",
   },
+
   featureSubtitle: {
     color: colors.primaryLight,
     fontSize: typography.small,
     lineHeight: 20,
     marginTop: spacing.xs,
   },
+
   peopleBadge: {
     width: 54,
     height: 54,
@@ -1032,6 +1186,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   requestButton: {
     backgroundColor: colors.surface,
     minHeight: dimensions.buttonHeight,
@@ -1040,16 +1195,32 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: spacing.sm,
+    paddingHorizontal: spacing.sm,
   },
+
   requestButtonHover: {
     backgroundColor: colors.primaryLight,
   },
+
   requestButtonText: {
     color: colors.primary,
     fontSize: typography.body,
     fontWeight: "700",
+    flexShrink: 1,
   },
-  walletCard: {
+
+  selectedHint: {
+    color: colors.primaryLight,
+    fontSize: typography.caption,
+    textAlign: "center",
+  },
+
+  multiline: {
+    minHeight: 96,
+    paddingVertical: spacing.md,
+  },
+
+  interactiveCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
@@ -1059,6 +1230,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.md,
   },
+
   walletIcon: {
     width: 46,
     height: 46,
@@ -1067,20 +1239,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+
   walletLabel: {
     color: colors.textSecondary,
     fontSize: typography.caption,
     fontWeight: "700",
   },
+
   walletBalance: {
     color: colors.text,
     fontSize: typography.subtitle,
     fontWeight: "700",
   },
+
   hoverCard: {
     borderColor: colors.primary,
     transform: [{ translateY: -2 }],
   },
+
   errandCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.md,
@@ -1089,39 +1265,31 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.md,
   },
+
   errandHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
   },
+
   itemTitle: {
     color: colors.text,
     fontSize: typography.small,
     fontWeight: "700",
   },
-  muted: {
-    color: colors.textSecondary,
-    fontSize: typography.caption,
-    lineHeight: 19,
-  },
-  statusBadge: {
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  statusText: {
-    fontSize: typography.caption,
-  },
+
   tracker: {
     flexDirection: "row",
     gap: spacing.xs,
     justifyContent: "space-between",
   },
+
   trackerItem: {
     flex: 1,
     alignItems: "center",
     gap: spacing.sm,
   },
+
   trackerDot: {
     width: 15,
     height: 15,
@@ -1130,43 +1298,62 @@ const styles = StyleSheet.create({
     borderColor: colors.disabled,
     backgroundColor: colors.surface,
   },
+
   trackerDotActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
+
   trackerLabel: {
     color: colors.textSecondary,
     fontSize: 10,
     textAlign: "center",
   },
+
+  trackerLabelActive: {
+    color: colors.primary,
+    fontWeight: "600",
+  },
+
   divider: {
     height: 1,
     backgroundColor: colors.border,
   },
+
   price: {
     color: colors.text,
     fontWeight: "700",
     fontSize: typography.body,
   },
-  emptyPanel: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: spacing.lg,
+
+  emptyCard: {
     alignItems: "center",
     gap: spacing.sm,
+    paddingVertical: spacing.lg,
   },
+
+  emptyContent: {
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+
   emptyTitle: {
     color: colors.text,
     fontSize: typography.small,
     fontWeight: "700",
   },
+
+  centerText: {
+    textAlign: "center",
+  },
+
   link: {
     color: colors.primary,
     fontSize: typography.caption,
     fontWeight: "700",
   },
+
   helpCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -1175,6 +1362,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.primaryLight,
   },
+
   notice: {
     backgroundColor: colors.infoBackground,
     padding: spacing.md,
@@ -1183,11 +1371,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
   },
+
   noticeText: {
     flex: 1,
     color: colors.info,
     fontSize: typography.small,
   },
+
   notificationItem: {
     flexDirection: "row",
     gap: spacing.sm,
@@ -1196,20 +1386,11 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
     paddingVertical: spacing.sm,
   },
+
   unreadDot: {
     width: spacing.sm,
     height: spacing.sm,
     borderRadius: radius.pill,
     backgroundColor: colors.primary,
-  },
-  fieldLabel: {
-    color: colors.text,
-    fontSize: typography.small,
-    fontWeight: "600",
-  },
-  selectedHint: {
-    color: colors.primaryLight,
-    fontSize: typography.caption,
-    textAlign: "center",
   },
 });
