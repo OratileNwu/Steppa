@@ -1,56 +1,111 @@
-# Welcome to your Expo app 👋
+# Steppa
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Your Neighbourhood. On the Move.**
 
-## Get started
+Steppa is a South African neighbourhood-based platform designed to connect people who need everyday errands completed with local runners who can assist. The goal is to make local errands more convenient while creating earning opportunities within communities.
 
-1. Install dependencies
+> **Project status:** Early development — features and requirements are still being finalised by the team.
+
+## Technology Stack
+
+- **Mobile application:** React Native
+- **Development framework:** Expo
+- **Language:** TypeScript
+- **Backend services:** Firebase (planned)
+- **Version control:** Git and GitHub
+
+## Getting Started
+
+### Prerequisites
+
+Before running Steppa locally, install:
+
+- [Node.js](https://nodejs.org/)
+- [Git](https://git-scm.com/)
+- [Expo Go](https://expo.dev/go/) on a compatible mobile device, or an Android emulator.
+
+### Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/OratileNwu/Steppa.git
+   ```
+
+2. Navigate to the project directory:
+
+   ```bash
+   cd Steppa
+   ```
+
+3. Install dependencies:
 
    ```bash
    npm install
    ```
 
-2. Start the app
+4. Start the Expo development server:
 
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+5. Follow the terminal instructions to open the app on a compatible device or emulator.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+**Windows PowerShell note:** If PowerShell blocks the `npm` command, use `npm.cmd install` instead.
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Project Structure
 
-## Get a fresh project
+The application uses Expo Router for file-based navigation.
 
-When you're ready, run:
+- `src/app/` — application screens and routes
+- `assets/` — images, icons, and other static assets
+- `package.json` — project dependencies and scripts
+- `package-lock.json` — locked dependency versions
 
-```bash
-npm run reset-project
+The exact structure may evolve as development progresses.
+
+## Team Collaboration
+
+We use GitHub to manage the codebase and coordinate development.
+
+### Workflow
+
+1. Keep the `main` branch stable.
+2. Create a separate branch for each feature or task.
+3. Commit changes with clear, descriptive messages.
+4. Push your branch to GitHub.
+5. Open a Pull Request to merge your changes into `main`.
+6. Review changes and resolve conflicts before merging.
+
+### Branch naming examples
+
+```text
+feature/home-screen
+feature/user-authentication
+feature/firebase-setup
+feature/runner-dashboard
+fix/navigation-error
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+Avoid committing directly to `main` when working on a shared feature.
 
-### Other setup steps
+## Development Guidelines
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+- Discuss and agree on features before implementation.
+- Keep code readable and organised.
+- Do not commit passwords, API keys, Firebase service-account credentials, or other secrets.
+- Test changes locally before opening a Pull Request.
+- Update this README as the project evolves.
 
-## Learn more
+## Useful Resources
 
-To learn more about developing your project with Expo, look at the following resources:
+- [Expo Documentation](https://docs.expo.dev/)
+- [React Native Documentation](https://reactnative.dev/docs/getting-started)
+- [Expo Router Documentation](https://docs.expo.dev/router/introduction/)
+- [Firebase Documentation](https://firebase.google.com/docs)
+- [GitHub Documentation](https://docs.github.com/)
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+---
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+*Steppa — Your Neighbourhood. On the Move.*
