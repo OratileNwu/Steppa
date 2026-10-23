@@ -1,8 +1,8 @@
+import { useState } from 'react';
+import RunnerDashboard from '@/components/dashboard/RunnerDashboard';
 import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { AnimatedIcon } from '@/components/animated-icon';
+import { Platform, Pressable, StyleSheet } from 'react-native';
 import { HintRow } from '@/components/hint-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -29,19 +29,45 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
+  const [showRunnerDashboard, setShowRunnerDashboard] = useState(false);
+
+  if (showRunnerDashboard) {
+    return <RunnerDashboard />;
+  }
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
           <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
+            Welcome to STEPPA
           </ThemedText>
         </ThemedView>
 
         <ThemedText type="code" style={styles.code}>
           get started
         </ThemedText>
+        <Pressable
+          style={{
+            backgroundColor: '#176B49',
+            paddingVertical: 15,
+            paddingHorizontal: 25,
+            borderRadius: 12,
+            marginTop: 15,
+          }}
+          onPress={() => setShowRunnerDashboard(true)}
+        >
+          <ThemedText
+            style={{
+              color: '#FFFFFF',
+              fontSize: 16,
+              fontWeight: '600',
+              textAlign: 'center',
+            }}
+          >
+            Open Runner Dashboard
+          </ThemedText>
+        </Pressable>
 
         <ThemedView type="backgroundElement" style={styles.stepContainer}>
           <HintRow
