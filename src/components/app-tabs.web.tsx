@@ -32,12 +32,16 @@ export default function AppTabs() {
 
       <TabList asChild>
         <CustomTabList>
-          <TabTrigger name="home" href="/" asChild>
+          <TabTrigger name="index" href="/" asChild>
             <TabButton>Home</TabButton>
           </TabTrigger>
 
           <TabTrigger name="explore" href="/explore" asChild>
             <TabButton>Explore</TabButton>
+          </TabTrigger>
+
+          <TabTrigger name="account" href="/account" asChild>
+            <TabButton>Account</TabButton>
           </TabTrigger>
 
           <TabTrigger
@@ -108,7 +112,7 @@ export function CustomTabList({
           type="smallBold"
           style={styles.brandText}
         >
-          Expo Starter
+          Steppa
         </ThemedText>
 
         {children}
@@ -127,6 +131,9 @@ export function CustomTabList({
             />
           </Pressable>
         </ExternalLink>
+        <ThemedText type="small" themeColor="textSecondary">
+          Your Neighbourhood. On the Move.
+        </ThemedText>
       </ThemedView>
     </View>
   );

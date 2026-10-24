@@ -299,13 +299,12 @@ export default function ErrandFlowTestScreen() {
   const [selectedId, setSelectedId] =
     useState<string | null>(null);
 
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(Platform.OS !== "web");
   const [storageError, setStorageError] = useState("");
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
     if (Platform.OS !== "web") {
-      setReady(true);
       return;
     }
 
@@ -747,7 +746,7 @@ export default function ErrandFlowTestScreen() {
 
         <AppText variant="small">
           Role switching is for testing only. Both views share
-          this browser's saved errands. Firebase account access,
+          this browser&apos;s saved errands. Firebase account access,
           payments and live location sharing are not connected.
         </AppText>
       </View>
