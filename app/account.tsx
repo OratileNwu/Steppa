@@ -10,19 +10,19 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 
-import { AppText } from "../../src/components/AppText";
-import { AppCard } from "../../src/components/AppCard";
-import { PrimaryButton } from "../../src/components/PrimaryButton";
-import { ScreenContainer } from "../../src/components/ScreenContainer";
+import { AppText } from "../src/components/AppText";
+import { AppCard } from "../src/components/AppCard";
+import { PrimaryButton } from "../src/components/PrimaryButton";
+import { ScreenContainer } from "../src/components/ScreenContainer";
 import {
     colors,
     spacing,
     radius,
     commonStyles,
-} from "../../src/theme";
+} from "../src/theme";
 
-import type { UserProfile } from "../../src/types/profile";
-import { getProfile } from "../../src/services/profileService";
+import type { UserProfile } from "../src/types/profile";
+import { getProfile } from "../src/services/profileService";
 
 export default function AccountScreen() {
     const router = useRouter();

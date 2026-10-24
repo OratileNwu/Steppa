@@ -1,39 +1,39 @@
-﻿
-import {
-    View,
-    StyleSheet,
-    type ViewProps,
-} from "react-native";
 
-import { commonStyles } from "../theme";
+import {
+  View,
+  StyleSheet,
+  type ViewProps,
+} from 'react-native';
+
+import { commonStyles, spacing } from '@/theme';
 
 type AppCardProps = ViewProps & {
-    padded?: boolean;
+  padded?: boolean;
 };
 
 export function AppCard({
-    children,
-    padded = true,
-    style,
-    ...props
+  children,
+  padded = true,
+  style,
+  ...props
 }: AppCardProps) {
-    return (
-        <View
-            {...props}
-            style={[
-                commonStyles.card,
-                !padded && styles.noPadding,
-                style,
-            ]}
-        >
-            {children}
-        </View>
-    );
+  return (
+    <View
+      {...props}
+      style={[
+        commonStyles.card,
+        !padded && styles.noPadding,
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    noPadding: {
-        padding: 0,
-        gap: 0,
-    },
+  noPadding: {
+    padding: 0,
+    gap: 0,
+  },
 });

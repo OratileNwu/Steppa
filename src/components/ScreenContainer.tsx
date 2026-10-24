@@ -1,42 +1,37 @@
-﻿
-import {
-    View,
-    StyleSheet,
-    type ViewProps,
-} from "react-native";
+import { View, StyleSheet, type ViewProps } from 'react-native';
 
-import { commonStyles, spacing } from "../theme";
+import { commonStyles, spacing } from '@/theme';
 
 type ScreenContainerProps = ViewProps & {
-    padded?: boolean;
-    centered?: boolean;
+  padded?: boolean;
+  centered?: boolean;
 };
 
 export function ScreenContainer({
-    children,
-    padded = true,
-    centered = false,
-    style,
-    ...props
+  children,
+  padded = true,
+  centered = false,
+  style,
+  ...props
 }: ScreenContainerProps) {
-    return (
-        <View
-            {...props}
-            style={[
-                commonStyles.screen,
-                padded && styles.content,
-                centered && commonStyles.centered,
-                style,
-            ]}
-        >
-            {children}
-        </View>
-    );
+  return (
+    <View
+      {...props}
+      style={[
+        commonStyles.screen,
+        padded && styles.content,
+        centered && commonStyles.centered,
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    content: {
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.lg,
-    },
+  content: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.lg,
+  },
 });
