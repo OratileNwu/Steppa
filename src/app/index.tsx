@@ -1,3 +1,9 @@
+ 
+import StepperDashboard from "../components/dashboards/StepperDashboard";
+
+export default function HomeScreen() {
+  return <StepperDashboard />;
+}
 import * as Device from 'expo-device';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
