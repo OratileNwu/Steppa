@@ -1,8 +1,9 @@
+
 import {
   TabList,
   Tabs,
   TabSlot,
-  TabTrigger,
+   TabTrigger,
   type TabListProps,
   type TabTriggerSlotProps,
 } from "expo-router/ui";
@@ -15,12 +16,26 @@ import { Colors, MaxContentWidth, Spacing } from "@/constants/theme";
 import { ExternalLink } from "./external-link";
 import { ThemedText } from "./themed-text";
 import { ThemedView } from "./themed-view";
+  type TabTriggerSlotProps,
+  type TabListProps,
+} from 'expo-router/ui';
+import {
+  Pressable,
+  useColorScheme,
+  View,
+  StyleSheet,
+} from 'react-native';
+
+import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { ThemedText } from './themed-text';
+import { ThemedView } from './themed-view';
 
 export default function AppTabs() {
   return (
     <Tabs>
       <TabSlot style={{ height: "100%" }} />
 
+      <TabSlot style={{ flex: 1 }} />
       <TabList asChild>
         <CustomTabList>
           <TabTrigger name="home" href="/" asChild>
@@ -48,11 +63,29 @@ export const TabButton = forwardRef<
     >
       <ThemedView
         type={isFocused ? "backgroundSelected" : "backgroundElement"}
+export function TabButton({
+  children,
+  isFocused,
+  ...props
+}: TabTriggerSlotProps) {
+  const { ref: _ref, ...pressableProps } = props;
+
+  return (
+    <Pressable
+      {...pressableProps}
+      style={({ pressed }) => [
+        styles.tabButton,
+        pressed && styles.pressed,
+      ]}
+    >
+      <ThemedView
+        type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
         style={styles.tabButtonView}
       >
         <ThemedText
           type="small"
           themeColor={isFocused ? "text" : "textSecondary"}
+          themeColor={isFocused ? 'text' : 'textSecondary'}
         >
           {children}
         </ThemedText>
@@ -66,10 +99,13 @@ export function CustomTabList(props: TabListProps) {
   const colors = Colors[scheme === "dark" ? "dark" : "light"];
 
   return (
-    <View {...props} style={styles.tabListContainer}>
-      <ThemedView type="backgroundElement" style={styles.innerContainer}>
+    <View style={[styles.tabListContainer, props.style]}>
+      <ThemedView
+        type="backgroundElement"
+        style={styles.innerContainer}
+      >
         <ThemedText type="smallBold" style={styles.brandText}>
-          Expo Starter
+          Steppa
         </ThemedText>
 
         {props.children}
@@ -85,6 +121,9 @@ export function CustomTabList(props: TabListProps) {
             />
           </Pressable>
         </ExternalLink>
+        <ThemedText type="small" themeColor="textSecondary">
+          Your Neighbourhood. On the Move.
+        </ThemedText>
       </ThemedView>
     </View>
   );
@@ -94,6 +133,9 @@ const styles = StyleSheet.create({
   tabListContainer: {
     position: "absolute",
     width: "100%",
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
     padding: Spacing.three,
     justifyContent: "center",
     alignItems: "center",
@@ -111,6 +153,9 @@ const styles = StyleSheet.create({
   },
   brandText: {
     marginRight: "auto",
+  },
+  tabButton: {
+    borderRadius: Spacing.three,
   },
   pressed: {
     opacity: 0.7,
