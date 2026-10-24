@@ -1,4 +1,4 @@
-﻿export type AccountRole = "Customer" | "Steppa";
+export type AccountRole = "customer" | "steppa";
 
 export interface UserProfile {
     uid: string;
