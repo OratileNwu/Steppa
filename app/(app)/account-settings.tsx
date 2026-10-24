@@ -10,11 +10,11 @@ import {
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 
-import { AppText } from "../src/components/AppText";
-import { AppCard } from "../src/components/AppCard";
-import { PrimaryButton } from "../src/components/PrimaryButton";
-import { ScreenContainer } from "../src/components/ScreenContainer";
-import { colors, spacing, radius } from "../src/theme";
+import { AppText } from "@/components/AppText";
+import { AppCard } from "@/components/AppCard";
+import { PrimaryButton } from "@/components/PrimaryButton";
+import { ScreenContainer } from "@/components/ScreenContainer";
+import { colors, spacing, radius } from "@/theme";
 
 export default function AccountSettingsScreen() {
     const router = useRouter();

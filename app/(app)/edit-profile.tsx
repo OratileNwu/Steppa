@@ -11,17 +11,17 @@ import {
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 
-import { AppText } from "../src/components/AppText";
-import { AppCard } from "../src/components/AppCard";
-import { AppTextInput } from "../src/components/AppTextInput";
-import { PrimaryButton } from "../src/components/PrimaryButton";
-import { ScreenContainer } from "../src/components/ScreenContainer";
-import { colors, spacing, radius } from "../src/theme";
+import { AppText } from "@/components/AppText";
+import { AppCard } from "@/components/AppCard";
+import { AppTextInput } from "@/components/AppTextInput";
+import { PrimaryButton } from "@/components/PrimaryButton";
+import { ScreenContainer } from "@/components/ScreenContainer";
+import { colors, spacing, radius } from "@/theme";
 
 import {
     getProfile,
     updateProfile,
-} from "../src/services/profileService";
+} from "@/services/profileService";
 
 export default function EditProfileScreen() {
     const router = useRouter();

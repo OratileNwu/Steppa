@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 
-import StepperDashboard from "../src/components/dashboards/StepperDashboard";
+import StepperDashboard from "@/components/dashboards/StepperDashboard";
 
 export default function HomeScreen() {
     const router = useRouter();
