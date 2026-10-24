@@ -1,26 +1,35 @@
-import { useState } from 'react';
-import RunnerDashboard from '@/components/dashboard/RunnerDashboard';
 import * as Device from 'expo-device';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Platform, Pressable, StyleSheet } from 'react-native';
+
 import { HintRow } from '@/components/hint-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import {
+  BottomTabInset,
+  MaxContentWidth,
+  Spacing,
+} from '@/constants/theme';
 
 function getDevMenuHint() {
   if (Platform.OS === 'web') {
     return <ThemedText type="small">use browser devtools</ThemedText>;
   }
+
   if (Device.isDevice) {
     return (
       <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
+        shake device or press{' '}
+        <ThemedText type="code">m</ThemedText> in terminal
       </ThemedText>
     );
   }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+
+  const shortcut =
+    Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+
   return (
     <ThemedText type="small">
       press <ThemedText type="code">{shortcut}</ThemedText>
@@ -29,11 +38,7 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
-  const [showRunnerDashboard, setShowRunnerDashboard] = useState(false);
-
-  if (showRunnerDashboard) {
-    return <RunnerDashboard />;
-  }
+  const router = useRouter();
 
   return (
     <ThemedView style={styles.container}>
@@ -42,42 +47,65 @@ export default function HomeScreen() {
           <ThemedText type="title" style={styles.title}>
             Welcome to STEPPA
           </ThemedText>
+
+          <ThemedText type="small" style={styles.subtitle}>
+            Your Neighbourhood. On the Move.
+          </ThemedText>
         </ThemedView>
 
         <ThemedText type="code" style={styles.code}>
           get started
         </ThemedText>
+
+        {/* RUNNER HOME DASHBOARD */}
+
         <Pressable
-          style={{
-            backgroundColor: '#176B49',
-            paddingVertical: 15,
-            paddingHorizontal: 25,
-            borderRadius: 12,
-            marginTop: 15,
-          }}
-          onPress={() => setShowRunnerDashboard(true)}
+          style={styles.primaryButton}
+          onPress={() => router.push('/runner-home')}
+          accessibilityRole="button"
         >
-          <ThemedText
-            style={{
-              color: '#FFFFFF',
-              fontSize: 16,
-              fontWeight: '600',
-              textAlign: 'center',
-            }}
-          >
+          <ThemedText style={styles.buttonText}>
             Open Runner Dashboard
           </ThemedText>
         </Pressable>
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
+        {/* RUNNER ANALYTICS DASHBOARD */}
+
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => router.push('/runner-analytics')}
+          accessibilityRole="button"
+        >
+          <ThemedText style={styles.secondaryButtonText}>
+            Open Runner Analytics
+          </ThemedText>
+        </Pressable>
+
+        <ThemedView
+          type="backgroundElement"
+          style={styles.stepContainer}
+        >
           <HintRow
             title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
+            hint={
+              <ThemedText type="code">
+                src/app/index.tsx
+              </ThemedText>
+            }
           />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
+
+          <HintRow
+            title="Dev tools"
+            hint={getDevMenuHint()}
+          />
+
           <HintRow
             title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
+            hint={
+              <ThemedText type="code">
+                npm run reset-project
+              </ThemedText>
+            }
           />
         </ThemedView>
 
@@ -93,6 +121,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
   },
+
   safeArea: {
     flex: 1,
     paddingHorizontal: Spacing.four,
@@ -101,6 +130,7 @@ const styles = StyleSheet.create({
     paddingBottom: BottomTabInset + Spacing.three,
     maxWidth: MaxContentWidth,
   },
+
   heroSection: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -108,12 +138,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     gap: Spacing.four,
   },
+
   title: {
     textAlign: 'center',
   },
+
+  subtitle: {
+    textAlign: 'center',
+  },
+
   code: {
     textTransform: 'uppercase',
   },
+
+  primaryButton: {
+    backgroundColor: '#176B45',
+    paddingVertical: 16,
+    paddingHorizontal: 25,
+    borderRadius: 12,
+    alignSelf: 'stretch',
+  },
+
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+
+  secondaryButton: {
+    backgroundColor: '#E8F5EC',
+    borderWidth: 1,
+    borderColor: '#176B45',
+    paddingVertical: 16,
+    paddingHorizontal: 25,
+    borderRadius: 12,
+    alignSelf: 'stretch',
+  },
+
+  secondaryButtonText: {
+    color: '#176B45',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+
   stepContainer: {
     gap: Spacing.three,
     alignSelf: 'stretch',

@@ -1,477 +1,781 @@
-
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
+  Alert,
   Pressable,
-  Switch,
+  ScrollView,
   StyleSheet,
-  StatusBar,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+  Switch,
+  View,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-type Filter = "All tasks" | "Groceries" | "Parcels";
+import { AppCard } from '@/components/AppCard';
+import { AppText } from '@/components/AppText';
+import { ErrandCard } from '@/components/ErrandCard';
+import { ScreenContainer } from '@/components/ScreenContainer';
+import { colors, radius, spacing, typography } from '@/theme';
+
+type ErrandStatus =
+  | 'requested'
+  | 'accepted'
+  | 'in_progress'
+  | 'completed'
+  | 'cancelled';
+
+type ErrandCategory = 'Groceries' | 'Parcels';
+
 type Errand = {
   id: string;
-  category: "Groceries" | "Parcels";
   title: string;
-  description: string;
-  distance: number;
-  pickup: string;
-  dropoff: string;
+  category: ErrandCategory;
+  location: string;
+  distance: string;
   fee: number;
+  description: string;
+  status: ErrandStatus;
 };
 
-const GREEN = "#176B49";
+type DashboardTab = 'available' | 'mine';
+type CategoryFilter = 'All tasks' | ErrandCategory;
 
-const errands: Errand[] = [
-  {
-    id: "1",
-    category: "Groceries",
-    title: "Grocery pickup",
-    description: "Pick up milk, brown bread and eggs from Pick n Pay.",
-    distance: 1.8,
-    pickup: "Maponya Mall",
-    dropoff: "Orlando West",
-    fee: 85,
-  },
-  {
-    id: "2",
-    category: "Parcels",
-    title: "Collect a parcel",
-    description: "Collect a small parcel from the Pargo counter.",
-    distance: 3.2,
-    pickup: "Soweto",
-    dropoff: "Orlando East",
-    fee: 70,
-  },
-  {
-    id: "3",
-    category: "Groceries",
-    title: "Shopping assistance",
-    description: "Collect a small grocery order from Shoprite.",
-    distance: 4.1,
-    pickup: "Jabulani Mall",
-    dropoff: "Zola",
-    fee: 60,
-  },
-];
+// No sample errands.
+// These arrays can be replaced with backend data later.
+const availableErrands: Errand[] = [];
+const myErrands: Errand[] = [];
 
 export default function RunnerDashboard() {
-  const router = useRouter();
-  const [online, setOnline] = useState(true);
-  const [filter, setFilter] = useState<Filter>("All tasks");
-  const [selectedTab, setSelectedTab] = useState("Available");
+  const [isOnline, setIsOnline] = useState(true);
+  const [activeTab, setActiveTab] =
+    useState<DashboardTab>('available');
 
-  const visible = errands.filter(
-    (errand) =>
-      online &&
-      (filter === "All tasks" || errand.category === filter)
-  );
+  const [selectedCategory, setSelectedCategory] =
+    useState<CategoryFilter>('All tasks');
+
+  // Earnings and completed-errand statistics are not
+  // available until the backend is connected.
+
+
+  const filteredErrands = availableErrands.filter((errand) => {
+    if (selectedCategory === 'All tasks') {
+      return true;
+    }
+
+    return errand.category === selectedCategory;
+  });
+
+  const displayedErrands =
+    activeTab === 'available'
+      ? filteredErrands
+      : myErrands;
+
+  const handleViewErrand = (errand: Errand) => {
+    Alert.alert(
+      errand.title,
+      `Location: ${errand.location}\nFee: R${errand.fee.toFixed(
+        2
+      )}\n\n${errand.description}`,
+      [{ text: 'OK' }]
+    );
+  };
+
+  const handleNavigation = (page: string) => {
+    if (page === 'Home') {
+      return;
+    }
+
+    Alert.alert(
+      page,
+      `${page} navigation will be connected when the team's screens are ready.`
+    );
+  };
 
   return (
-    <View style={styles.screen}>
-      <StatusBar barStyle="dark-content" />
+    <ScreenContainer padded={false}>
+      <View style={styles.mainContainer}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* HEADER */}
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
-      >
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.eyebrow}>STEPPA RUNNER</Text>
-            <Text style={styles.heading}>Ready to earn?</Text>
-            <Text style={styles.subheading}>
-              Find errands in your neighbourhood.
-            </Text>
-          </View>
-          <View style={styles.avatar}>
-            <Ionicons name="person-outline" size={24} color={GREEN} />
-          </View>
-        </View>
+          <View style={styles.header}>
+            <View style={styles.headerText}>
+              <AppText variant="small">
+                STEPPA RUNNER
+              </AppText>
 
-        <View style={styles.onlineCard}>
-          <View style={styles.onlineLeft}>
-            <View style={styles.statusDot} />
-            <View>
-              <Text style={styles.onlineTitle}>
-                {online ? "You're online" : "You're offline"}
-              </Text>
-              <Text style={styles.muted}>
-                {online
-                  ? "Available for new errands"
-                  : "Go online to see errands"}
-              </Text>
+              <AppText variant="title">
+                Runner Dashboard
+              </AppText>
+
+              <AppText variant="secondary">
+                Find nearby errands and start earning.
+              </AppText>
+            </View>
+
+            <View style={styles.profileIcon}>
+              <Ionicons
+                name="person-outline"
+                size={24}
+                color={colors.primary}
+              />
             </View>
           </View>
-          <Switch
-            value={online}
-            onValueChange={setOnline}
-            trackColor={{ false: "#D1D5DB", true: "#9ACDB1" }}
-            thumbColor={online ? GREEN : "#FFFFFF"}
-          />
-        </View>
 
-        <View style={styles.stats}>
-          <View style={styles.statCard}>
-            <Ionicons name="wallet-outline" size={23} color={GREEN} />
-            <Text style={styles.statLabel}>Today&apos;s earnings</Text>
-            <Text style={styles.statValue}>R185</Text>
-            <Text style={styles.statFoot}>Simulated</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="checkmark-circle-outline" size={23} color={GREEN} />
-            <Text style={styles.statLabel}>Completed errands</Text>
-            <Text style={styles.statValue}>4</Text>
-            <Text style={styles.statFoot}>Today</Text>
-          </View>
-        </View>
+          {/* ONLINE STATUS */}
 
-        <View style={styles.tabs}>
-          {["Available", "My errands"].map((tab) => (
+          <AppCard style={styles.availabilityCard}>
+            <View style={styles.availabilityRow}>
+              <View style={styles.availabilityDetails}>
+                <View style={styles.statusHeading}>
+                  <View
+                    style={[
+                      styles.statusDot,
+                      {
+                        backgroundColor: isOnline
+                          ? colors.success
+                          : colors.disabled,
+                      },
+                    ]}
+                  />
+
+                  <AppText
+                    variant="heading"
+                    style={styles.statusTitle}
+                  >
+                    {isOnline
+                      ? "You're online"
+                      : "You're offline"}
+                  </AppText>
+                </View>
+
+                <AppText variant="secondary">
+                  {isOnline
+                    ? 'You are available for nearby errands.'
+                    : 'Go online to become available for errands.'}
+                </AppText>
+              </View>
+
+              <Switch
+                value={isOnline}
+                onValueChange={setIsOnline}
+                trackColor={{
+                  false: colors.disabled,
+                  true: colors.primaryLight,
+                }}
+                thumbColor={
+                  isOnline
+                    ? colors.primary
+                    : colors.surface
+                }
+                accessibilityLabel="Runner availability"
+              />
+            </View>
+          </AppCard>
+
+          {/* EARNINGS SUMMARY */}
+
+          <View style={styles.summaryRow}>
+            <AppCard style={styles.summaryCard}>
+              <View style={styles.summaryIcon}>
+                <Ionicons
+                  name="wallet-outline"
+                  size={22}
+                  color={colors.primary}
+                />
+              </View>
+
+              <AppText variant="secondary">
+                Today&apos;s earnings
+              </AppText>
+
+              <AppText
+                variant="heading"
+                style={styles.summaryValue}
+              >
+                R —
+              </AppText>
+
+              <AppText variant="small">
+                Earnings not available yet
+              </AppText>
+            </AppCard>
+
+            <AppCard style={styles.summaryCard}>
+              <View style={styles.summaryIcon}>
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={22}
+                  color={colors.primary}
+                />
+              </View>
+
+              <AppText variant="secondary">
+                Completed errands
+              </AppText>
+
+              <AppText
+                variant="heading"
+                style={styles.summaryValue}
+              >
+                —
+              </AppText>
+
+              <AppText variant="small">
+                Data not available yet
+              </AppText>
+            </AppCard>
+          </View>
+
+          {/* SECTION HEADER */}
+
+          <View style={styles.sectionHeading}>
+            <AppText variant="heading">
+              Errands
+            </AppText>
+
+            <AppText variant="secondary">
+              Browse available tasks or manage your errands.
+            </AppText>
+          </View>
+
+          {/* AVAILABLE / MY ERRANDS TABS */}
+
+          <View style={styles.tabsContainer}>
             <Pressable
-              key={tab}
+              onPress={() => setActiveTab('available')}
               style={[
                 styles.tab,
-                selectedTab === tab && styles.activeTab,
+                activeTab === 'available' &&
+                  styles.activeTab,
               ]}
-              onPress={() => setSelectedTab(tab)}
             >
-              <Text
+              <AppText
                 style={[
                   styles.tabText,
-                  selectedTab === tab && styles.activeTabText,
+                  activeTab === 'available' &&
+                    styles.activeTabText,
                 ]}
               >
-                {tab}
-              </Text>
+                Available errands
+              </AppText>
             </Pressable>
-          ))}
-        </View>
 
-        {selectedTab === "Available" ? (
-          <>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Near you</Text>
-              <Text style={styles.nearby}>Within 5 km</Text>
-            </View>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.filterRow}
+            <Pressable
+              onPress={() => setActiveTab('mine')}
+              style={[
+                styles.tab,
+                activeTab === 'mine' &&
+                  styles.activeTab,
+              ]}
             >
-              {(["All tasks", "Groceries", "Parcels"] as Filter[]).map(
-                (item) => (
-                  <Pressable
-                    key={item}
-                    onPress={() => setFilter(item)}
+              <AppText
+                style={[
+                  styles.tabText,
+                  activeTab === 'mine' &&
+                    styles.activeTabText,
+                ]}
+              >
+                My errands
+              </AppText>
+            </Pressable>
+          </View>
+
+          {/* CATEGORY FILTERS */}
+
+          {activeTab === 'available' && (
+            <View style={styles.filters}>
+              {(
+                [
+                  'All tasks',
+                  'Groceries',
+                  'Parcels',
+                ] as CategoryFilter[]
+              ).map((category) => (
+                <Pressable
+                  key={category}
+                  onPress={() =>
+                    setSelectedCategory(category)
+                  }
+                  style={[
+                    styles.filterChip,
+                    selectedCategory === category &&
+                      styles.selectedFilterChip,
+                  ]}
+                >
+                  <AppText
                     style={[
-                      styles.chip,
-                      filter === item && styles.chipActive,
+                      styles.filterText,
+                      selectedCategory === category &&
+                        styles.selectedFilterText,
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        filter === item && styles.chipTextActive,
-                      ]}
-                    >
-                      {item}
-                    </Text>
-                  </Pressable>
-                )
-              )}
-            </ScrollView>
+                    {category}
+                  </AppText>
+                </Pressable>
+              ))}
+            </View>
+          )}
 
-            {visible.length === 0 ? (
-              <View style={styles.empty}>
-                <Ionicons name="moon-outline" size={32} color={GREEN} />
-                <Text style={styles.emptyTitle}>
-                  {online ? "No errands found" : "You are offline"}
-                </Text>
-                <Text style={styles.muted}>
-                  {online
-                    ? "Try another category."
-                    : "Switch online to browse errands."}
-                </Text>
-              </View>
+          {/* ERRAND LIST */}
+
+          <View style={styles.errandList}>
+            <View style={styles.listHeading}>
+              <AppText
+                variant="heading"
+                style={styles.listTitle}
+              >
+                {activeTab === 'available'
+                  ? 'Nearby errands'
+                  : 'Your errands'}
+              </AppText>
+
+              <AppText variant="small">
+                {displayedErrands.length}{' '}
+                {displayedErrands.length === 1
+                  ? 'errand'
+                  : 'errands'}
+              </AppText>
+            </View>
+
+            {activeTab === 'available' &&
+              !isOnline && (
+                <AppCard style={styles.noticeCard}>
+                  <AppText variant="secondary">
+                    You are currently offline. Go online
+                    to make yourself available for new
+                    errands.
+                  </AppText>
+                </AppCard>
+              )}
+
+            {displayedErrands.length === 0 ? (
+              <AppCard style={styles.emptyCard}>
+                <View style={styles.emptyIcon}>
+                  <Ionicons
+                    name={
+                      activeTab === 'available'
+                        ? 'search-outline'
+                        : 'clipboard-outline'
+                    }
+                    size={28}
+                    color={colors.primary}
+                  />
+                </View>
+
+                <AppText
+                  variant="heading"
+                  style={styles.emptyTitle}
+                >
+                  {activeTab === 'available'
+                    ? 'No available errands'
+                    : 'No errands yet'}
+                </AppText>
+
+                <AppText
+                  variant="secondary"
+                  style={styles.emptyDescription}
+                >
+                  {activeTab === 'available'
+                    ? 'Available errands will appear here once they are loaded.'
+                    : 'Errands assigned to you will appear here.'}
+                </AppText>
+              </AppCard>
             ) : (
-              visible.map((errand) => (
-                <View key={errand.id} style={styles.errandCard}>
-                  <View style={styles.errandTop}>
-                    <View style={styles.errandIcon}>
+              displayedErrands.map((errand) => (
+                <View
+                  key={errand.id}
+                  style={styles.errandItem}
+                >
+                  <View style={styles.errandMeta}>
+                    <View style={styles.categoryLabel}>
                       <Ionicons
                         name={
-                          errand.category === "Groceries"
-                            ? "basket-outline"
-                            : "cube-outline"
+                          errand.category === 'Groceries'
+                            ? 'basket-outline'
+                            : 'cube-outline'
                         }
-                        size={25}
-                        color={GREEN}
+                        size={16}
+                        color={colors.primary}
                       />
+
+                      <AppText variant="small">
+                        {errand.category}
+                      </AppText>
                     </View>
 
-                    <View style={styles.errandInfo}>
-                      <Text style={styles.category}>
-                        {errand.category.toUpperCase()} ·{" "}
-                        {errand.distance.toFixed(1)} KM
-                      </Text>
-                      <Text style={styles.errandTitle}>
-                        {errand.title}
-                      </Text>
-                    </View>
+                    {errand.distance ? (
+                      <View style={styles.distanceLabel}>
+                        <Ionicons
+                          name="location-outline"
+                          size={15}
+                          color={colors.textSecondary}
+                        />
 
-                    <Text style={styles.fee}>R{errand.fee}</Text>
+                        <AppText variant="small">
+                          {errand.distance}
+                        </AppText>
+                      </View>
+                    ) : null}
                   </View>
 
-                  <Text style={styles.description}>
-                    {errand.description}
-                  </Text>
-
-                  <View style={styles.line} />
-
-                  <View style={styles.location}>
-                    <Ionicons
-                      name="location-outline"
-                      size={19}
-                      color="#6B7280"
-                    />
-                    <Text style={styles.locationText}>
-                      {errand.pickup} → {errand.dropoff}
-                    </Text>
-                  </View>
+                  <ErrandCard
+                    title={errand.title}
+                    location={errand.location}
+                    fee={errand.fee}
+                    status={errand.status}
+                    description={errand.description}
+                  />
 
                   <Pressable
-                    style={styles.primaryButton}
-                    onPress={() => {
-                      // Connect to the team's errand details screen.
-                    }}
+                    onPress={() =>
+                      handleViewErrand(errand)
+                    }
+                    style={styles.viewButton}
+                    accessibilityRole="button"
                   >
-                    <Text style={styles.primaryButtonText}>
+                    <AppText
+                      style={styles.viewButtonText}
+                    >
                       View errand
-                    </Text>
+                    </AppText>
+
                     <Ionicons
-                      name="chevron-forward"
-                      size={21}
-                      color="#FFFFFF"
+                      name="arrow-forward"
+                      size={18}
+                      color={colors.textOnPrimary}
                     />
                   </Pressable>
                 </View>
               ))
             )}
-          </>
-        ) : (
-          <View style={styles.empty}>
-            <Ionicons name="bicycle-outline" size={36} color={GREEN} />
-            <Text style={styles.emptyTitle}>My errands</Text>
-            <Text style={styles.muted}>
-              Your accepted and active errands will appear here.
-            </Text>
           </View>
-        )}
-      </ScrollView>
+        </ScrollView>
 
-      <View style={styles.bottomNav}>
-        <Pressable style={styles.navItem}>
-          <Ionicons name="home-outline" size={24} color={GREEN} />
-          <Text style={styles.navActive}>Home</Text>
-        </Pressable>
-        <Pressable
-          style={styles.navItem}
-          onPress={() => setSelectedTab("My errands")}
-        >
-          <Ionicons name="list-outline" size={24} color="#8B9490" />
-          <Text style={styles.navLabel}>Activity</Text>
-        </Pressable>
-        <Pressable style={styles.navItem}>
-          <Ionicons name="wallet-outline" size={24} color="#8B9490" />
-          <Text style={styles.navLabel}>Wallet</Text>
-        </Pressable>
-        <Pressable style={styles.navItem}>
-          <Ionicons name="person-outline" size={24} color="#8B9490" />
-          <Text style={styles.navLabel}>Profile</Text>
-        </Pressable>
+        {/* BOTTOM NAVIGATION */}
+
+        <View style={styles.bottomNavigation}>
+          {(
+            [
+              {
+                name: 'Home',
+                icon: 'home-outline',
+              },
+              {
+                name: 'Activity',
+                icon: 'time-outline',
+              },
+              {
+                name: 'Wallet',
+                icon: 'wallet-outline',
+              },
+              {
+                name: 'Profile',
+                icon: 'person-outline',
+              },
+            ] as const
+          ).map((item) => (
+            <Pressable
+              key={item.name}
+              style={styles.navigationItem}
+              onPress={() =>
+                handleNavigation(item.name)
+              }
+              accessibilityRole="button"
+            >
+              <Ionicons
+                name={item.icon}
+                size={23}
+                color={
+                  item.name === 'Home'
+                    ? colors.primary
+                    : colors.textSecondary
+                }
+              />
+
+              <AppText
+                variant="small"
+                style={[
+                  styles.navigationText,
+                  item.name === 'Home' &&
+                    styles.activeNavigationText,
+                ]}
+              >
+                {item.name}
+              </AppText>
+            </Pressable>
+          ))}
+        </View>
       </View>
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#F8FAF9" },
-  scroll: { padding: 20, paddingBottom: 30 },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 22,
-  },
-  eyebrow: {
-    color: GREEN,
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-  },
-  heading: {
-    fontSize: 27,
-    fontWeight: "700",
-    color: "#17231D",
-    marginTop: 6,
-  },
-  subheading: { color: "#69746E", marginTop: 5, fontSize: 13 },
-  avatar: {
-    backgroundColor: "#E5F4EB",
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  onlineCard: {
-    backgroundColor: "#E5F4EB",
-    borderRadius: 17,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 17,
-  },
-  onlineLeft: { flexDirection: "row", alignItems: "center", gap: 11 },
-  statusDot: {
-    width: 11,
-    height: 11,
-    borderRadius: 6,
-    backgroundColor: GREEN,
-  },
-  onlineTitle: { color: GREEN, fontSize: 15, fontWeight: "700" },
-  muted: { color: "#718078", fontSize: 12, marginTop: 4 },
-  stats: { flexDirection: "row", gap: 12, marginBottom: 23 },
-  statCard: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.background,
+  },
+
+  scrollContent: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.lg,
+  },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+
+  headerText: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+
+  profileIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  availabilityCard: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primaryLight,
+  },
+
+  availabilityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+
+  availabilityDetails: {
+    flex: 1,
+    gap: spacing.sm,
+  },
+
+  statusHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: radius.pill,
+  },
+
+  statusTitle: {
+    fontSize: typography.subtitle,
+  },
+
+  summaryRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+
+  summaryCard: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.sm,
+  },
+
+  summaryIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  summaryValue: {
+    color: colors.primary,
+  },
+
+  sectionHeading: {
+    gap: spacing.xs,
+  },
+
+  tabsContainer: {
+    flexDirection: 'row',
+    padding: spacing.xs,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 17,
-    padding: 16,
-    gap: 7,
+    borderColor: colors.border,
   },
-  statLabel: { color: "#68756D", fontSize: 12 },
-  statValue: { color: GREEN, fontSize: 27, fontWeight: "700" },
-  statFoot: { color: "#94A3A0", fontSize: 11 },
-  tabs: {
-    flexDirection: "row",
-    backgroundColor: "#EBF0ED",
-    padding: 4,
-    borderRadius: 14,
-    marginBottom: 23,
-  },
+
   tab: {
     flex: 1,
-    alignItems: "center",
-    paddingVertical: 12,
-    borderRadius: 11,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radius.sm,
+    alignItems: 'center',
   },
-  activeTab: { backgroundColor: "#FFFFFF" },
-  tabText: { color: "#78837D", fontWeight: "600" },
-  activeTabText: { color: GREEN },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 15,
+
+  activeTab: {
+    backgroundColor: colors.primary,
   },
-  sectionTitle: { fontSize: 21, fontWeight: "700", color: "#17231D" },
-  nearby: { color: GREEN, fontSize: 13, fontWeight: "600" },
-  filterRow: { marginBottom: 19 },
-  chip: {
+
+  tabText: {
+    color: colors.textSecondary,
+    fontSize: typography.small,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+
+  activeTabText: {
+    color: colors.textOnPrimary,
+  },
+
+  filters: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+
+  filterChip: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: "#E1E7E3",
-    borderRadius: 24,
-    paddingVertical: 11,
-    paddingHorizontal: 18,
-    marginRight: 10,
-    backgroundColor: "#FFFFFF",
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  chipActive: {
-    backgroundColor: "#E5F4EB",
-    borderColor: "#B8DCC7",
+
+  selectedFilterChip: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
   },
-  chipText: { color: "#17231D", fontWeight: "500" },
-  chipTextActive: { color: GREEN, fontWeight: "700" },
-  errandCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 21,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "#E4E9E5",
-    marginBottom: 17,
-    elevation: 2,
+
+  filterText: {
+    color: colors.textSecondary,
+    fontSize: typography.small,
   },
-  errandTop: { flexDirection: "row", alignItems: "center", gap: 11 },
-  errandIcon: {
-    width: 55,
-    height: 55,
-    borderRadius: 15,
-    backgroundColor: "#E5F4EB",
-    justifyContent: "center",
-    alignItems: "center",
+
+  selectedFilterText: {
+    color: colors.primary,
+    fontWeight: '700',
   },
-  errandInfo: { flex: 1 },
-  category: { color: GREEN, fontSize: 11, fontWeight: "700" },
-  errandTitle: {
-    fontSize: 17,
-    color: "#17231D",
-    fontWeight: "600",
-    marginTop: 6,
+
+  errandList: {
+    gap: spacing.md,
   },
-  fee: { color: GREEN, fontSize: 22, fontWeight: "700" },
-  description: {
-    color: "#6B7280",
-    fontSize: 14,
-    lineHeight: 22,
-    marginTop: 19,
+
+  listHeading: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  line: {
-    height: 1,
-    backgroundColor: "#E5E7EB",
-    marginVertical: 17,
+
+  listTitle: {
+    fontSize: typography.subtitle,
   },
-  location: { flexDirection: "row", alignItems: "center", gap: 8 },
-  locationText: { color: "#6B7280", fontSize: 12, flex: 1 },
-  primaryButton: {
-    marginTop: 19,
-    backgroundColor: GREEN,
-    borderRadius: 13,
-    padding: 15,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 10,
+
+  emptyCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.md,
+    gap: spacing.md,
   },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
+
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  empty: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 30,
-    alignItems: "center",
-    gap: 10,
+
+  emptyTitle: {
+    textAlign: 'center',
   },
-  emptyTitle: { color: "#17231D", fontSize: 18, fontWeight: "700" },
-  bottomNav: {
-    flexDirection: "row",
-    backgroundColor: "#FFFFFF",
+
+  emptyDescription: {
+    textAlign: 'center',
+    maxWidth: 280,
+  },
+
+  errandItem: {
+    gap: spacing.sm,
+  },
+
+  errandMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+
+  categoryLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+
+  distanceLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+
+  viewButton: {
+    minHeight: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+
+  viewButtonText: {
+    color: colors.textOnPrimary,
+    fontSize: typography.body,
+    fontWeight: '600',
+  },
+
+  noticeCard: {
+    backgroundColor: colors.warningBackground,
+    borderColor: colors.warningBackground,
+  },
+
+  bottomNavigation: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-    paddingTop: 12,
-    paddingBottom: 12,
+    borderTopColor: colors.border,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
   },
-  navItem: { flex: 1, alignItems: "center", gap: 5 },
-  navActive: { color: GREEN, fontSize: 11, fontWeight: "600" },
-  navLabel: { color: "#8B9490", fontSize: 11 },
+
+  navigationItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+  },
+
+  navigationText: {
+    color: colors.textSecondary,
+  },
+
+  activeNavigationText: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
 });
