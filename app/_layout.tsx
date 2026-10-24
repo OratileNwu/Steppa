@@ -20,7 +20,7 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false }}>
           {/* Logged in (or exploring the demo) → the tabs. Everyone else → welcome / sign in / sign up. */}
           <Stack.Protected guard={signedIn}>
-            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="(app)" />
           </Stack.Protected>
           <Stack.Protected guard={!signedIn}>
             <Stack.Screen name="(auth)" />
