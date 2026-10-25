@@ -111,7 +111,12 @@ export default function HomeScreen() {
   return (
     <StepperDashboard
       onOpenProfile={() => router.push("/account")}
-      onRequestErrand={() => router.push("/create-errand")}
+      onRequestErrand={(category) =>
+        router.push({
+          pathname: "/create-errand",
+          params: { category },
+        })
+      }
       onOpenWallet={() => router.push("/runner-wallet")}
       activeErrand={activeErrand}
       loading={errandLoading}
