@@ -14,6 +14,8 @@ const statusLabels: Record<ErrandStatus, string> = {
   assigned: 'Assigned',
   accepted: 'Accepted',
   in_progress: 'In progress',
+  awaiting_customer_confirmation: 'Awaiting customer',
+  completion_disputed: 'Problem reported',
   completed: 'Completed',
   cancelled: 'Cancelled',
 };
