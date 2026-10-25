@@ -123,7 +123,11 @@ export default function HomeScreen() {
       }
       onViewAllErrands={() => router.push("/(app)/my-errands")}
       onSubmitQueue={async (request) => {
-        await submitQueueRequest(request);
+        const id = await submitQueueRequest(request);
+        router.replace({
+          pathname: "/customer-errand-details",
+          params: { id },
+        });
       }}
     />
   );
