@@ -69,17 +69,18 @@ export default function RunnerDashboard() {
     setLoadingErrands(true);
     setErrandLoadError(null);
 
-    const availableQuery = query(
-      collection(db, 'errands'),
-      where('status', '==', 'pending'),
-      where('runnerId', '==', null),
-    );
 
-    const assignedQuery = query(
-      collection(db, 'errands'),
-      where('runnerId', '==', user.uid),
-      where('status', 'in', ['assigned', 'in_progress']),
-    );
+const availableQuery = query(
+  collection(db, "errands"),
+  where("status", "==", "pending"),
+  where("runnerId", "==", null)
+);
+
+const assignedQuery = query(
+  collection(db, "errands"),
+  where("runnerId", "==", user.uid),
+  where("status", "in", ["assigned", "in_progress"])
+);
 
     const mapErrand = (document: {
       id: string;
@@ -87,8 +88,11 @@ export default function RunnerDashboard() {
     }): Errand => {
       const data = document.data();
 
-      const category: ErrandCategory =
-        data.category === 'Parcels' ? 'Parcels' : 'Groceries';
+const category: ErrandCategory =
+  data.category === "Parcels" ||
+  data.category === "parcels"
+    ? "Parcels"
+    : "Groceries";
 
       return {
         id: document.id,

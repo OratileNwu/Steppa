@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -21,8 +22,9 @@ import { db } from "@/lib/firebase";
 import { AppCard } from "@/components/AppCard";
 import { AppText } from "@/components/AppText";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import CustomerErrandDetail from "@/components/CustomerErrandDetail";
-import type { RunnerErrand } from "@/components/RunnerErrandDetails";
+import CustomerErrandDetails from "@/components/errands/CustomerErrandDetails";
+import type { RunnerErrand } from "@/components/errands/RunnerErrandDetails";
+import { respondToCounterOffer } from "@/services/errandService";
 import { colors, spacing } from "@/theme";
 
 function getErrorMessage(error: unknown): string {
@@ -32,11 +34,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 /**
- * Converts a Firestore document into the display model.
- *
- * The Firestore document ID is always used as the canonical
- * errand ID, so navigation does not depend on an ID stored
- * inside the document data.
+ * Uses the Firestore document ID as the canonical errand ID.
  */
 function toRunnerErrand(
   id: string,
@@ -56,7 +54,6 @@ export default function CustomerErrandDetailsRoute() {
     errandId?: string | string[];
   }>();
 
-  // Supports both the existing `id` parameter and `errandId`.
   const rawId = params.id ?? params.errandId;
   const errandId = Array.isArray(rawId) ? rawId[0] : rawId;
 
@@ -75,7 +72,9 @@ export default function CustomerErrandDetailsRoute() {
   useEffect(() => {
     if (!errandId) {
       setErrand(null);
-      setError("No errand was selected. Return to the dashboard and select an errand.");
+      setError(
+        "No errand was selected. Return to the dashboard and select an errand.",
+      );
       setLoading(false);
       return;
     }
@@ -88,8 +87,6 @@ export default function CustomerErrandDetailsRoute() {
 
     const errandRef = doc(db, "errands", errandId);
 
-    // Subscribe so status changes and counter-offers appear
-    // without the user needing to reopen the screen.
     const unsubscribe = onSnapshot(
       errandRef,
       (snapshot) => {
@@ -103,7 +100,9 @@ export default function CustomerErrandDetailsRoute() {
         }
 
         try {
-          setErrand(toRunnerErrand(snapshot.id, snapshot.data()));
+          setErrand(
+            toRunnerErrand(snapshot.id, snapshot.data()),
+          );
           setError("");
         } catch (caughtError) {
           setErrand(null);
@@ -115,7 +114,11 @@ export default function CustomerErrandDetailsRoute() {
       (caughtError) => {
         if (!active) return;
 
-        console.error("Customer errand subscription failed:", caughtError);
+        console.error(
+          "Customer errand subscription failed:",
+          caughtError,
+        );
+
         setErrand(null);
         setError(
           "We couldn't load this errand. Check your connection and access permissions.",
@@ -131,18 +134,38 @@ export default function CustomerErrandDetailsRoute() {
   }, [errandId]);
 
   /**
-   * Counter-offer writes are deliberately not guessed here.
-   *
-   * Before enabling this action, connect it to your existing
-   * validated counter-offer service or Firestore transaction.
-   * Accepting an offer must verify that the offer is still
-   * pending and assign the correct proposing runner.
+   * CustomerErrandDetails expects:
+   * (id: string, accept: boolean) => Promise<void>
    */
   const handleRespondToCounterOffer = useCallback(
-    async (_id: string, _accept: boolean): Promise<void> => {
-      throw new Error(
-        "Counter-offer responses are not connected to the validated errand service yet.",
-      );
+    async (id: string, accept: boolean): Promise<void> => {
+      if (!id) {
+        throw new Error("Could not identify this errand.");
+      }
+
+      try {
+        await respondToCounterOffer(
+          id,
+          accept ? "accept" : "decline",
+        );
+
+        Alert.alert(
+          accept
+            ? "Counter-offer accepted"
+            : "Counter-offer declined",
+          accept
+            ? "The runner has been assigned to your errand."
+            : "You have declined the runner's counter-offer.",
+        );
+      } catch (caughtError) {
+        Alert.alert(
+          "Unable to respond",
+          getErrorMessage(caughtError),
+        );
+
+        // Let the child component display the error too.
+        throw caughtError;
+      }
     },
     [],
   );
@@ -150,7 +173,10 @@ export default function CustomerErrandDetailsRoute() {
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+        />
         <AppText style={styles.message}>
           Loading errand details...
         </AppText>
@@ -167,9 +193,14 @@ export default function CustomerErrandDetailsRoute() {
             onPress={handleBack}
             style={styles.backButton}
           >
-            <AppText style={styles.backText}>‹ Back</AppText>
+            <AppText style={styles.backText}>
+              ‹ Back
+            </AppText>
           </Pressable>
-          <AppText variant="heading">Errand details</AppText>
+
+          <AppText variant="heading">
+            Errand details
+          </AppText>
         </View>
 
         <View style={styles.errorContainer}>
@@ -177,9 +208,11 @@ export default function CustomerErrandDetailsRoute() {
             <AppText variant="heading">
               Unable to open errand
             </AppText>
+
             <AppText style={styles.message}>
               {error || "The errand could not be found."}
             </AppText>
+
             <PrimaryButton
               title="Return to dashboard"
               onPress={handleBack}
@@ -198,16 +231,23 @@ export default function CustomerErrandDetailsRoute() {
           onPress={handleBack}
           style={styles.backButton}
         >
-          <AppText style={styles.backText}>‹ Back</AppText>
+          <AppText style={styles.backText}>
+            ‹ Back
+          </AppText>
         </Pressable>
-        <AppText variant="heading">Errand details</AppText>
+
+        <AppText variant="heading">
+          Errand details
+        </AppText>
       </View>
 
       <View style={styles.content}>
-        <CustomerErrandDetail
+        <CustomerErrandDetails
           errand={errand}
           onBack={handleBack}
-          onRespondToCounterOffer={handleRespondToCounterOffer}
+          onRespondToCounterOffer={
+            handleRespondToCounterOffer
+          }
         />
       </View>
     </SafeAreaView>

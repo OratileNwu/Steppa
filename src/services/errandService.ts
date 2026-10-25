@@ -1,77 +1,134 @@
-
-import {
-  addDoc,
-  collection,
-  serverTimestamp,
-} from "firebase/firestore";
-
+import { addDoc, collection, doc, runTransaction, serverTimestamp } from "firebase/firestore";
 import { auth, db, isFirebaseConfigured } from "@/lib/firebase";
 import type { CreateErrandInput } from "@/components/errands/CreateErrandForm";
 import type { QueueRequest } from "@/components/dashboards/StepperDashboard";
 
-function requireSignedInUser() {
-  if (!isFirebaseConfigured) {
-    throw new Error("Firebase is not configured yet.");
-  }
-
+function userOrThrow() {
+  if (!isFirebaseConfigured) throw new Error("Firebase is not configured.");
   const user = auth.currentUser;
-
-  if (!user) {
-    throw new Error("Please sign in before submitting a request.");
-  }
-
+  if (!user) throw new Error("Please sign in first.");
   return user;
 }
-
-export async function submitErrand(input: CreateErrandInput) {
-  console.info("[Steppa] Starting errand submission.");
-
-  try {
-    const user = requireSignedInUser();
-    console.info("[Steppa] Signed-in user confirmed.");
-
-    const reference = await addDoc(collection(db, "errands"), {
-      ...input,
-      customerId: user.uid,
-      status: "pending",
-      offerStatus: "pending",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      runnerId: null,
-    });
-
-    console.info("[Steppa] Errand saved successfully:", reference.id);
-    return reference.id;
-  } catch (error) {
-    console.error("[Steppa] Errand submission failed:", error);
-    throw error;
+function text(value: unknown, label: string) {
+  if (typeof value !== "string" || !value.trim()) throw new Error(`${label} is required.`);
+  return value.trim();
+}
+function fee(value: unknown) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) throw new Error("Enter a valid fee.");
+  return Math.round(n * 100) / 100;
+}
+function assertAvailable(data: any) {
+  // Supports old pending documents during transition; new records use requested.
+  if (!["requested", "pending"].includes(data.status) || data.runnerId != null || data.assignedRunnerId != null) {
+    throw new Error("This errand is no longer available.");
   }
 }
 
-export async function submitQueueRequest(input: QueueRequest) {
-  console.info("[Steppa] Starting queue submission.");
+export async function submitErrand(input: CreateErrandInput): Promise<string> {
+  const user = userOrThrow();
+  const description = text(input.description, "Errand description");
+  const offeredFee = fee(input.recommendedFee);
+  const ref = await addDoc(collection(db, "errands"), {
+    ...input, title: `${input.category} request`, description,
+    recommendedFee: offeredFee, offeredFee, fee: offeredFee,
+    customerId: user.uid, status: "requested", runnerId: null,
+    assignedRunnerId: null, offerStatus: "pending", counterOffer: null,
+    statusTimes: { requested: new Date().toISOString() },
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  });
+  return ref.id;
+}
 
-  try {
-    const user = requireSignedInUser();
+export async function submitQueueRequest(input: QueueRequest): Promise<string> {
+  const user = userOrThrow();
+  const purpose = text(input.purpose, "Queue request purpose");
+  const instructions = text(input.instructions, "Queue instructions");
+  const location = text(input.location, "Queue location");
+  const ref = await addDoc(collection(db, "errands"), {
+    category: "Queue for me", categoryKey: "queue",
+    title: `Queue request: ${purpose}`, description: instructions,
+    queueLocation: location, serviceNeeded: purpose, customerId: user.uid,
+    status: "requested", runnerId: null, assignedRunnerId: null,
+    offerStatus: "pending", counterOffer: null,
+    statusTimes: { requested: new Date().toISOString() },
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  });
+  return ref.id;
+}
 
-    const reference = await addDoc(collection(db, "errands"), {
-      category: "queue",
-      title: `Queue request: ${input.purpose}`,
-      description: input.instructions,
-      queueLocation: input.location,
-      serviceNeeded: input.purpose,
-      customerId: user.uid,
-      status: "pending",
-      offerStatus: "pending",
-      createdAt: serverTimestamp(),
+export async function acceptErrand(id: string): Promise<void> {
+  const user = userOrThrow(), ref = doc(db, "errands", id);
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) throw new Error("Errand not found.");
+    const data = snap.data(); assertAvailable(data);
+    const agreedFee = fee(data.offeredFee ?? data.fee ?? data.recommendedFee);
+    tx.update(ref, {
+      status: "accepted", runnerId: user.uid, assignedRunnerId: user.uid,
+      agreedFee, offerStatus: "accepted",
+      statusTimes: { ...(data.statusTimes ?? {}), accepted: new Date().toISOString() },
       updatedAt: serverTimestamp(),
-      runnerId: null,   
     });
+  });
+}
 
-    console.info("[Steppa] Queue request saved successfully:", reference.id);
-    return reference.id;
-  } catch (error) {
-    console.error("[Steppa] Queue submission failed:", error);
-    throw error;
-  }
+export async function submitRunnerCounterOffer(id: string, amount: number): Promise<void> {
+  const user = userOrThrow(), ref = doc(db, "errands", id), offerFee = fee(amount);
+  if (offerFee < 30) throw new Error("Counter-offers must be at least R30.");
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) throw new Error("Errand not found.");
+    const data = snap.data(); assertAvailable(data);
+    if (data.counterOffer?.status === "pending") throw new Error("A counter-offer is already pending.");
+    tx.update(ref, {
+      counterOffer: { amount: offerFee, runnerId: user.uid, status: "pending", createdAt: serverTimestamp() },
+      updatedAt: serverTimestamp(),
+    });
+  });
+}
+
+export async function startErrand(id: string): Promise<void> {
+  const user = userOrThrow(), ref = doc(db, "errands", id);
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) throw new Error("Errand not found.");
+    const data = snap.data();
+    if (data.runnerId !== user.uid || data.status !== "accepted") throw new Error("Only the assigned runner can start an accepted errand.");
+    tx.update(ref, { status: "in_progress", statusTimes: { ...(data.statusTimes ?? {}), in_progress: new Date().toISOString() }, updatedAt: serverTimestamp() });
+  });
+}
+
+export async function completeErrand(id: string): Promise<void> {
+  const user = userOrThrow(), ref = doc(db, "errands", id);
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) throw new Error("Errand not found.");
+    const data = snap.data();
+    if (data.runnerId !== user.uid || data.status !== "in_progress") throw new Error("Only the assigned runner can complete an in-progress errand.");
+    tx.update(ref, { status: "completed", statusTimes: { ...(data.statusTimes ?? {}), completed: new Date().toISOString() }, updatedAt: serverTimestamp() });
+  });
+}
+
+export async function respondToCounterOffer(id: string, decision: "accept" | "decline"): Promise<void> {
+  const user = userOrThrow(), ref = doc(db, "errands", id);
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) throw new Error("Errand not found.");
+    const data = snap.data(), offer = data.counterOffer;
+    if (data.customerId !== user.uid) throw new Error("Only the customer can respond.");
+    if (!["requested", "pending"].includes(data.status) || data.runnerId != null) throw new Error("This errand is no longer available.");
+    if (!offer || offer.status !== "pending" || !offer.runnerId) throw new Error("No pending counter-offer.");
+    if (decision === "decline") {
+      tx.update(ref, { counterOffer: { ...offer, status: "declined" }, updatedAt: serverTimestamp() });
+    } else {
+      tx.update(ref, {
+        status: "accepted", runnerId: offer.runnerId, assignedRunnerId: offer.runnerId,
+        agreedFee: fee(offer.amount), offerStatus: "accepted",
+        counterOffer: { ...offer, status: "accepted" },
+        statusTimes: { ...(data.statusTimes ?? {}), accepted: new Date().toISOString() },
+        updatedAt: serverTimestamp(),
+      });
+    }
+  });
 }

@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "Steppa",
-    "slug": "Steppa",
+    "owner": "steppas",
+    "slug": "steppas",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -38,7 +39,8 @@
           "imageWidth": 76
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -51,7 +53,7 @@
         }
       },
       "eas": {
-        "projectId": "7c9c991a-4e3d-44ff-a695-11c7e17db6a1"
+        "projectId": "2522ca53-7751-4ed0-a974-312cb645790b"
       }
     }
   }
