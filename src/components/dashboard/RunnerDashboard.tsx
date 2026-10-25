@@ -116,7 +116,7 @@ const category: ErrandCategory =
           data.location ??
           'Location not provided',
         distance: '',
-        fee: Number(data.agreedFee ?? data.offeredFee ?? data.fee ?? data.recommendedFee ?? 0),
+        fee: data.status === 'completed' ? Number(data.agreedFee ?? data.offeredFee ?? data.fee ?? data.recommendedFee ?? 0) : 0,
         description: data.description ?? '',
         // ErrandCard displays new requests with the legacy pending label.
         status: data.status === 'requested' ? 'pending' : (data.status ?? 'pending'),
@@ -178,10 +178,6 @@ const category: ErrandCategory =
       unsubscribeAssigned();
     };
   }, []);
-
-  const completedEarnings = myErrands
-    .filter((errand) => errand.status === 'completed')
-    .reduce((total, errand) => total + Math.max(0, Number(errand.fee) || 0), 0);
 
   const todayEarnings = myErrands
     .filter((errand) => {
@@ -346,7 +342,7 @@ const handleViewErrand = (errand: Errand) => {
               </AppText>
 
               <AppText variant="small">
-                Earnings not available yet
+                Only customer-confirmed completed errands count
               </AppText>
             </AppCard>
 
