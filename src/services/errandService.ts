@@ -28,10 +28,11 @@ function assertAvailable(data: any) {
 export async function submitErrand(input: CreateErrandInput): Promise<string> {
   const user = userOrThrow();
   const description = text(input.description, "Errand description");
-  const offeredFee = fee(input.recommendedFee);
+  const recommendedFee = fee(input.recommendedFee);
+  const offeredFee = fee(input.offeredFee);
   const ref = await addDoc(collection(db, "errands"), {
     ...input, title: `${input.category} request`, description,
-    recommendedFee: offeredFee, offeredFee, fee: offeredFee,
+    recommendedFee, offeredFee, fee: offeredFee,
     customerId: user.uid, status: "requested", runnerId: null,
     assignedRunnerId: null, offerStatus: "pending", counterOffer: null,
     statusTimes: { requested: new Date().toISOString() },
