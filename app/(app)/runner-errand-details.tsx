@@ -132,6 +132,7 @@ export default function RunnerErrandDetailsRoute() {
           data.fee ??
           0,
       ),
+      paymentMethod: String(data.paymentMethod ?? "Not selected"),
       agreedFee:
         data.agreedFee == null
           ? undefined
