@@ -572,7 +572,7 @@ export default function RunnerErrandDetails({
 
           {isAssignedToMe && errand.status === "in_progress" ? (
             <PrimaryButton
-              title="Mark errand completed"
+              title="Mark as delivered — request confirmation"
               loading={busy}
               disabled={!onAction}
               onPress={() => {
@@ -581,6 +581,18 @@ export default function RunnerErrandDetails({
             />
           ) : null}
 
+          {isAssignedToMe && errand.status === "awaiting_customer_confirmation" ? (
+            <AppCard>
+              <AppText variant="heading">Waiting for customer confirmation</AppText>
+              <AppText variant="secondary">You reported delivery. The errand will be completed after the customer confirms.</AppText>
+            </AppCard>
+          ) : null}
+          {isAssignedToMe && errand.status === "completion_disputed" ? (
+            <AppCard>
+              <AppText variant="heading">Customer reported a problem</AppText>
+              <AppText variant="secondary">This errand needs follow-up and is not marked completed.</AppText>
+            </AppCard>
+          ) : null}
           {notice ? (
             <AppText accessibilityLiveRegion="polite">
               {notice}
