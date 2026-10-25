@@ -226,12 +226,9 @@ export default function StepperDashboard({
       return;
     }
 
-    if (selected === "queue") {
-      setQueueOpen(true);
-      return;
-    }
-
     if (onRequestErrand) {
+      // Queue requests use the same validated errand creation flow,
+      // with the Queue category preselected.
       onRequestErrand(selected);
     } else {
       unavailable("Create Errand");
