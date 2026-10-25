@@ -89,7 +89,7 @@ const assignedQuery = query(
     "in_progress",
     "awaiting_customer_confirmation",
     "completion_disputed",
-    "completed"
+    "completed",
   ])
 );
 

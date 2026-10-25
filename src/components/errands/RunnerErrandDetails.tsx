@@ -255,9 +255,14 @@ export default function RunnerErrandDetails({
       setNotice(
         "Counteroffer sent. Wait for the customer’s response before starting.",
       );
-    } catch {
+    } catch (caughtError) {
+      console.error("[Steppa] Counteroffer failed:", caughtError);
+      const detail =
+        caughtError instanceof Error ? caughtError.message : String(caughtError);
       setError(
-        "The counteroffer could not be confirmed. Refresh before retrying.",
+        detail
+          ? `Counteroffer failed: ${detail}`
+          : "The counteroffer could not be confirmed. Refresh before retrying.",
       );
     } finally {
       busyRef.current = false;
