@@ -31,6 +31,7 @@ export function useRunnerAnalytics(period: string) {
 
     const completedQuery = query(
       collection(db, 'errands'),
+      where('runnerId', '==', user.uid),
       where('assignedRunnerId', '==', user.uid),
       where('status', '==', 'completed'),
     );
