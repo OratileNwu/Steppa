@@ -53,6 +53,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const [activeErrand, setActiveErrand] = useState<StepperErrand | null>(null);
   const [errandLoading, setErrandLoading] = useState(true);
+  const [completedErrandsCount, setCompletedErrandsCount] = useState(0);
 
   useEffect(() => {
     let stopErrands: (() => void) | undefined;
@@ -64,6 +65,7 @@ export default function HomeScreen() {
       setActiveErrand(null);
 
       if (!user) {
+        setCompletedErrandsCount(0);
         setErrandLoading(false);
         return;
       }
@@ -77,11 +79,15 @@ export default function HomeScreen() {
       stopErrands = onSnapshot(
         customerQuery,
         (snapshot) => {
-          const active = snapshot.docs
-            .map((document) => ({
-              id: document.id,
-              ...document.data(),
-            }))
+          const customerErrands = snapshot.docs.map((document) => ({
+            id: document.id,
+            ...document.data(),
+          }));
+          setCompletedErrandsCount(
+            customerErrands.filter((item) => String(item.status) === "completed").length,
+          );
+
+          const active = customerErrands
             .filter((item) => ACTIVE_STATUSES.has(String(item.status)))
             .sort((a, b) => {
               const aTime = (a.createdAt as any)?.toMillis?.() ?? 0;
@@ -97,6 +103,7 @@ export default function HomeScreen() {
         (error) => {
           console.error("[Steppa] Could not load active customer errand:", error);
           setActiveErrand(null);
+          setCompletedErrandsCount(0);
           setErrandLoading(false);
         },
       );
@@ -113,7 +120,16 @@ export default function HomeScreen() {
       onOpenProfile={() => router.push("/account")}
       onRequestErrand={() => router.push("/create-errand")}
       onOpenWallet={() => router.push("/runner-wallet")}
-onViewAllErrands={() => router.push("/(app)/my-errands")}
+      activeErrand={activeErrand}
+      loading={errandLoading}
+      completedErrandsCount={completedErrandsCount}
+      onOpenErrand={(id) =>
+        router.push({
+          pathname: "/customer-errand-details",
+          params: { id },
+        })
+      }
+      onViewAllErrands={() => router.push("/(app)/my-errands")}
       onSubmitQueue={async (request) => {
         await submitQueueRequest(request);
       }}
