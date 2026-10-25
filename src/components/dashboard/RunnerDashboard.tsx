@@ -70,16 +70,19 @@ export default function RunnerDashboard() {
     setErrandLoadError(null);
 
 
+// New errands are created as "requested". Keep "pending" for older
+// documents created by earlier versions of the app.
 const availableQuery = query(
   collection(db, "errands"),
-  where("status", "==", "pending"),
+  where("status", "in", ["requested", "pending"]),
   where("runnerId", "==", null)
 );
 
+// The service assigns errands with status "accepted", not "assigned".
 const assignedQuery = query(
   collection(db, "errands"),
   where("runnerId", "==", user.uid),
-  where("status", "in", ["assigned", "in_progress"])
+  where("status", "in", ["accepted", "assigned", "in_progress"])
 );
 
     const mapErrand = (document: {
@@ -178,7 +181,7 @@ const category: ErrandCategory =
 
 const handleViewErrand = (errand: Errand) => {
   router.push({
-pathname: "/(app)/customer-errand-details", 
+    pathname: "/runner-errand-details",
     params: { id: errand.id },
   });
 };
