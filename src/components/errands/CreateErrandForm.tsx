@@ -63,6 +63,7 @@ const PRICING = {
 
 type Category = (typeof categories)[number];
 type Institution = (typeof institutions)[number];
+type PaymentMethod = "Cash" | "EFT" | "Credit Card";
 
 type SharedDetails = {
   description: string;
@@ -91,6 +92,7 @@ export type CreateErrandInput = ErrandDetails & {
   offeredFee: number;
   currency: "ZAR";
   pricingVersion: typeof PRICING.version;
+  paymentMethod: PaymentMethod;
 };
 
 type Props = {
@@ -475,6 +477,7 @@ export default function CreateErrandForm({ onSubmit, estimatedFee }: Props) {
     routeParams.category === "queue" ? "Queue for me" : "Groceries",
   );
   const [institution, setInstitution] = useState<Institution>("Bank");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Cash");
 
   const [description, setDescription] = useState("");
   const [collection, setCollection] = useState("");
@@ -695,6 +698,7 @@ export default function CreateErrandForm({ onSubmit, estimatedFee }: Props) {
       offeredFee,
       currency: "ZAR",
       pricingVersion: PRICING.version,
+      paymentMethod,
     };
 
     submittingRef.current = true;
@@ -1052,6 +1056,13 @@ export default function CreateErrandForm({ onSubmit, estimatedFee }: Props) {
                       : "Choose your preferred time range for today."}
                   </AppText>
                 </View>
+
+                <Choices
+                  label="Payment method"
+                  options={["Cash", "EFT", "Credit Card"] as const}
+                  value={paymentMethod}
+                  onChange={setPaymentMethod}
+                />
 
                 <FeeCard
                   category={category}
