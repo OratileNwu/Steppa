@@ -24,7 +24,7 @@ import { AppText } from "@/components/AppText";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import CustomerErrandDetails from "@/components/errands/CustomerErrandDetails";
 import type { RunnerErrand } from "@/components/errands/RunnerErrandDetails";
-import { respondToCounterOffer } from "@/services/errandService";
+import { confirmErrandCompletion, respondToCounterOffer } from "@/services/errandService";
 import { colors, spacing } from "@/theme";
 
 function getErrorMessage(error: unknown): string {
@@ -170,6 +170,17 @@ export default function CustomerErrandDetailsRoute() {
     [],
   );
 
+  const handleConfirmCompletion = useCallback(async (confirmed: boolean): Promise<void> => {
+    if (!errandId) throw new Error("Could not identify this errand.");
+    try {
+      await confirmErrandCompletion(errandId, confirmed);
+      Alert.alert(confirmed ? "Completion confirmed" : "Problem reported", confirmed ? "Thank you. This errand is now marked completed." : "This errand has been flagged for follow-up.");
+    } catch (caughtError) {
+      Alert.alert("Unable to save response", getErrorMessage(caughtError));
+      throw caughtError;
+    }
+  }, [errandId]);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
@@ -245,9 +256,8 @@ export default function CustomerErrandDetailsRoute() {
         <CustomerErrandDetails
           errand={errand}
           onBack={handleBack}
-          onRespondToCounterOffer={
-            handleRespondToCounterOffer
-          }
+          onRespondToCounterOffer={handleRespondToCounterOffer}
+          onConfirmCompletion={handleConfirmCompletion}
         />
       </View>
     </SafeAreaView>
