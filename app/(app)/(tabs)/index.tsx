@@ -18,7 +18,7 @@ export default function HomeScreen() {
         .sort((a, b) => ((b.createdAt as any)?.toMillis?.() ?? 0) - ((a.createdAt as any)?.toMillis?.() ?? 0));
       const item = docs[0] as any;
       if (!item) { setActiveErrand(null); return; }
-      const category = /grocer/i.test(String(item.category)) ? "groceries"
+      const category: StepperErrand["category"] = /grocer/i.test(String(item.category)) ? "groceries"
         : /parcel|pickup|collection/i.test(String(item.category)) ? "parcel"
         : /queue/i.test(String(item.category)) ? "queue" : "other";
       setActiveErrand({ id: item.id, category, title: String(item.title ?? "Your errand"),
