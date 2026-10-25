@@ -116,7 +116,7 @@ const category: ErrandCategory =
           data.location ??
           'Location not provided',
         distance: '',
-        fee: data.status === 'completed' ? Number(data.agreedFee ?? data.offeredFee ?? data.fee ?? data.recommendedFee ?? 0) : 0,
+        fee: Number(data.agreedFee ?? data.offeredFee ?? data.fee ?? data.recommendedFee ?? 0),
         description: data.description ?? '',
         // ErrandCard displays new requests with the legacy pending label.
         status: data.status === 'requested' ? 'pending' : (data.status ?? 'pending'),
