@@ -106,8 +106,7 @@ export async function completeErrand(id: string): Promise<void> {
     if (!snap.exists()) throw new Error("Errand not found.");
     const data = snap.data();
     if ((data.runnerId ?? data.assignedRunnerId) !== user.uid || data.status !== "in_progress") throw new Error("Only the assigned runner can report completion for an in-progress errand.");
-    const now = new Date().toISOString();
-    tx.update(ref, { status: "awaiting_customer_confirmation", completionReportedBy: user.uid, completionReportedAt: now, statusTimes: { ...(data.statusTimes ?? {}), awaiting_customer_confirmation: now }, updatedAt: serverTimestamp() });
+    tx.update(ref, { status: "awaiting_customer_confirmation", completionReportedBy: user.uid, completionReportedAt: serverTimestamp(), statusTimes: { ...(data.statusTimes ?? {}), awaiting_customer_confirmation: serverTimestamp() }, updatedAt: serverTimestamp() });
   });
 }
 
@@ -119,10 +118,9 @@ export async function confirmErrandCompletion(id: string, confirmed: boolean): P
     const data = snap.data();
     if (data.customerId !== user.uid) throw new Error("Only the customer who requested this errand can respond.");
     if (data.status !== "awaiting_customer_confirmation") throw new Error("This errand is not awaiting confirmation.");
-    const now = new Date().toISOString();
     tx.update(ref, confirmed
-      ? { status: "completed", customerConfirmedCompletion: true, customerConfirmedAt: now, statusTimes: { ...(data.statusTimes ?? {}), completed: now }, updatedAt: serverTimestamp() }
-      : { status: "completion_disputed", customerConfirmedCompletion: false, customerReportedProblemAt: now, statusTimes: { ...(data.statusTimes ?? {}), completion_disputed: now }, updatedAt: serverTimestamp() });
+      ? { status: "completed", customerConfirmedCompletion: true, customerConfirmedAt: serverTimestamp(), statusTimes: { ...(data.statusTimes ?? {}), completed: serverTimestamp() }, updatedAt: serverTimestamp() }
+      : { status: "completion_disputed", customerConfirmedCompletion: false, customerReportedProblemAt: serverTimestamp(), statusTimes: { ...(data.statusTimes ?? {}), completion_disputed: serverTimestamp() }, updatedAt: serverTimestamp() });
   });
 }
 
