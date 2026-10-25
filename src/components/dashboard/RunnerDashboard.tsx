@@ -352,6 +352,21 @@ const handleViewErrand = (errand: Errand) => {
             </AppCard>
           </View>
 
+          {activeTab === 'available' && myErrands.some((e) => ['accepted', 'assigned', 'in_progress', 'awaiting_customer_confirmation', 'completion_disputed'].includes(e.status)) ? (
+            <AppCard>
+              <AppText variant="heading">Your active errands</AppText>
+              {myErrands.filter((e) => ['accepted', 'assigned', 'in_progress', 'awaiting_customer_confirmation', 'completion_disputed'].includes(e.status)).slice(0, 3).map((errand) => (
+                <Pressable key={errand.id} onPress={() => handleViewErrand(errand)} style={{ paddingVertical: spacing.sm }} accessibilityRole="button">
+                  <AppText>{errand.title}</AppText>
+                  <AppText variant="secondary">{String(errand.status).replaceAll('_', ' ')}</AppText>
+                </Pressable>
+              ))}
+              <Pressable onPress={() => setActiveTab('mine')} accessibilityRole="button">
+                <AppText style={styles.viewButtonText}>View all my errands</AppText>
+              </Pressable>
+            </AppCard>
+          ) : null}
+
           {/* SECTION HEADER */}
           <View style={styles.sectionHeading}>
             <AppText variant="heading">Errands</AppText>
