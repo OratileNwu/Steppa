@@ -14,7 +14,7 @@ export default function HomeScreen() {
     if (!user) { setActiveErrand(null); return; }
     return onSnapshot(query(collection(db, "errands"), where("customerId", "==", user.uid)), (snapshot) => {
       const docs = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))
-        .filter((item) => ["accepted", "assigned", "in_progress", "awaiting_customer_confirmation", "completion_disputed"].includes(String(item.status)))
+        .filter((item) => ["requested", "pending", "accepted", "assigned", "in_progress", "awaiting_customer_confirmation", "completion_disputed"].includes(String(item.status)))
         .sort((a, b) => ((b.createdAt as any)?.toMillis?.() ?? 0) - ((a.createdAt as any)?.toMillis?.() ?? 0));
       const item = docs[0] as any;
       if (!item) { setActiveErrand(null); return; }
