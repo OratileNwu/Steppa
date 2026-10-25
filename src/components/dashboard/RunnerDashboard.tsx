@@ -109,7 +109,8 @@ const category: ErrandCategory =
         distance: '',
         fee: Number(data.offeredFee ?? data.fee ?? 0),
         description: data.description ?? '',
-        status: data.status ?? 'pending',
+        // ErrandCard displays new requests with the legacy pending label.
+        status: data.status === 'requested' ? 'pending' : (data.status ?? 'pending'),
       };
     };
 
