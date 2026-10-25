@@ -351,11 +351,11 @@ const handleViewErrand = (errand: Errand) => {
                 variant="heading"
                 style={styles.summaryValue}
               >
-                —
+                {myErrands.filter((errand) => errand.status === "completed").length}
               </AppText>
 
               <AppText variant="small">
-                Data not available yet
+                Completed errands assigned to you
               </AppText>
             </AppCard>
           </View>
