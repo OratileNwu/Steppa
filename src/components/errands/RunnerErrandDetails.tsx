@@ -206,9 +206,14 @@ export default function RunnerErrandDetails({
       setNotice(
         "Update sent. The progress display will refresh when the latest errand data arrives.",
       );
-    } catch {
+    } catch (caughtError) {
+      console.error("[Steppa] Errand action failed:", caughtError);
+      const detail =
+        caughtError instanceof Error ? caughtError.message : String(caughtError);
       setError(
-        "The update could not be confirmed. Refresh the errand before retrying.",
+        detail
+          ? `Update failed: ${detail}`
+          : "The update could not be confirmed. Refresh the errand before retrying.",
       );
     } finally {
       busyRef.current = false;
@@ -385,7 +390,7 @@ export default function RunnerErrandDetails({
           <AppCard style={styles.feeCard}>
             <View style={styles.feeRow}>
               <AppText style={styles.label}>
-                Customer’s offer
+                Customer’s original offer
               </AppText>
               <AppText style={styles.fee}>
                 {money(errand.fee)}
@@ -403,7 +408,7 @@ export default function RunnerErrandDetails({
 
             {errand.counterOffer ? (
               <AppText variant="secondary">
-                Counteroffer: {money(errand.counterOffer.amount)}
+                Runner counteroffer: {money(errand.counterOffer.amount)}
                 {" · "}
                 {errand.counterOffer.status}
               </AppText>
