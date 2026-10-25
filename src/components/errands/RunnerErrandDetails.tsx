@@ -47,6 +47,7 @@ export type RunnerErrand = {
   distance?: string;
   fee: number;
   agreedFee?: number;
+  paymentMethod?: string;
   description: string;
   status: RunnerErrandStatus;
   assignedRunnerId?: string;
@@ -393,6 +394,9 @@ export default function RunnerErrandDetails({
           </AppCard>
 
           <AppCard style={styles.feeCard}>
+            <AppText variant="secondary">Customer payment method</AppText>
+            <AppText variant="heading">{errand.paymentMethod ?? "Not selected"}</AppText>
+            <AppText variant="small">Payment is simulated in this prototype; no real payment is processed.</AppText>
             <View style={styles.feeRow}>
               <AppText style={styles.label}>
                 Customer’s original offer
