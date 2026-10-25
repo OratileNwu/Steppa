@@ -82,7 +82,15 @@ const availableQuery = query(
 const assignedQuery = query(
   collection(db, "errands"),
   where("runnerId", "==", user.uid),
-  where("status", "in", ["accepted", "assigned", "in_progress", "awaiting_customer_confirmation", "completion_disputed", "completed"])
+  where("assignedRunnerId", "==", user.uid),
+  where("status", "in", [
+    "accepted",
+    "assigned",
+    "in_progress",
+    "awaiting_customer_confirmation",
+    "completion_disputed",
+    "completed",
+  ])
 );
 
     const mapErrand = (document: {
