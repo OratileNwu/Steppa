@@ -9,6 +9,7 @@ import {
     Users,
 } from "lucide-react-native";
 import { useRef, useState, type ComponentRef } from "react";
+import { useLocalSearchParams } from "expo-router";
 import {
     KeyboardAvoidingView,
     Platform,
@@ -469,7 +470,10 @@ function formatTime(value: string) {
 }
 
 export default function CreateErrandForm({ onSubmit, estimatedFee }: Props) {
-  const [category, setCategory] = useState<Category>("Groceries");
+  const routeParams = useLocalSearchParams<{ category?: string }>();
+  const [category, setCategory] = useState<Category>(
+    routeParams.category === "queue" ? "Queue for me" : "Groceries",
+  );
   const [institution, setInstitution] = useState<Institution>("Bank");
 
   const [description, setDescription] = useState("");
