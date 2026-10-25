@@ -105,6 +105,8 @@ export default function RunnerErrandDetailsRoute() {
       accepted: "accepted",
       assigned: "accepted",
       in_progress: "in_progress",
+      awaiting_customer_confirmation: "awaiting_customer_confirmation",
+      completion_disputed: "completion_disputed",
       completed: "completed",
       cancelled: "cancelled",
     };
