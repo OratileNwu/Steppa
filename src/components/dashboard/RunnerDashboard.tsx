@@ -177,6 +177,20 @@ const category: ErrandCategory =
     };
   }, []);
 
+  const completedEarnings = myErrands
+    .filter((errand) => errand.status === 'completed')
+    .reduce((total, errand) => total + Math.max(0, Number(errand.fee) || 0), 0);
+
+  const todayEarnings = myErrands
+    .filter((errand) => {
+      if (errand.status !== 'completed') return false;
+      const raw = (errand as Errand & { completedAt?: any }).completedAt;
+      const date = raw?.toDate ? raw.toDate() : raw ? new Date(raw) : null;
+      return date instanceof Date && !Number.isNaN(date.getTime()) &&
+        date.toDateString() === new Date().toDateString();
+    })
+    .reduce((total, errand) => total + Math.max(0, Number(errand.fee) || 0), 0);
+
   const filteredErrands = availableErrands.filter((errand) => {
     if (selectedCategory === 'All tasks') {
       return true;
@@ -326,7 +340,7 @@ const handleViewErrand = (errand: Errand) => {
                 variant="heading"
                 style={styles.summaryValue}
               >
-                R —
+                {`R ${todayEarnings.toFixed(2)}`}
               </AppText>
 
               <AppText variant="small">
