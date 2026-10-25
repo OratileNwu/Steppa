@@ -1,4 +1,8 @@
 ﻿
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { authActions } from '@/hooks/use-auth-session';
+
 import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
@@ -149,21 +153,27 @@ export default function AccountScreen() {
                     </>
                 )}
 
-                <Pressable
-                    accessibilityRole="button"
-                    onPress={() =>
-                        Alert.alert(
-                            "Log Out",
-                            "Logout will be connected to Firebase Authentication later."
-                        )
-                    }
-                    style={({ pressed }) => [
-                        styles.logout,
-                        pressed && styles.pressed,
-                    ]}
-                >
-                    <AppText style={styles.logoutText}>Log Out</AppText>
-                </Pressable>
+
+<Pressable
+  accessibilityRole="button"
+  onPress={async () => {
+    try {
+      await signOut(auth);
+      authActions.exitDemo();
+      router.replace("/welcome");
+    } catch (error) {
+      console.error("Steppa logout failed:", error);
+      Alert.alert("Logout failed", "We could not log you out. Please try again.");
+    }
+  }}
+  style={({ pressed }) => [
+    styles.logout,
+    pressed && styles.pressed,
+  ]}
+>
+  <AppText style={styles.logoutText}>Log Out</AppText>
+</Pressable>
+
 
                 <AppText variant="small" style={styles.footer}>
                     STEPPA · Your Neighbourhood. On the Move.
@@ -275,3 +285,4 @@ const styles = StyleSheet.create({
         marginTop: spacing.sm,
     },
 });
+

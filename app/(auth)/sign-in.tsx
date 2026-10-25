@@ -31,6 +31,7 @@ export default function SignInScreen() {
     try {
       // On success the root layout notices the new session and swaps to the tabs by itself.
       await signInWithEmailAndPassword(auth, email.trim(), password);
+      router.replace('/entry');
     } catch (err: any) {
       setErrors({ form: friendlyAuthError(err?.code) });
       setLoading(false);

@@ -1,4 +1,4 @@
-import {
+﻿import {
   TabList,
   Tabs,
   TabSlot,
@@ -42,14 +42,6 @@ export default function AppTabs() {
 
           <TabTrigger name="account" href="/account" asChild>
             <TabButton>Account</TabButton>
-          </TabTrigger>
-
-          <TabTrigger
-            name="errand-flow-test"
-            href="/errand-flow-test"
-            asChild
-          >
-            <TabButton>Errand test</TabButton>
           </TabTrigger>
         </CustomTabList>
       </TabList>
@@ -182,3 +174,4 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.three,
   },
 });
+

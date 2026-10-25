@@ -1,4 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { signOut } from 'firebase/auth';
+import {
+  collection,
+  onSnapshot,
+  query,
+  where,
+} from 'firebase/firestore';
 import {
   Alert,
   Pressable,
@@ -9,18 +17,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { db, auth } from '@/lib/firebase';
+import { authActions } from '@/hooks/use-auth-session';
 import { AppCard } from '@/components/AppCard';
 import { AppText } from '@/components/AppText';
 import { ErrandCard } from '@/components/ErrandCard';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { colors, radius, spacing, typography } from '@/theme';
-
-type ErrandStatus =
-  | 'requested'
-  | 'accepted'
-  | 'in_progress'
-  | 'completed'
-  | 'cancelled';
+import type { ErrandStatus } from '@/components/ErrandCard';
 
 type ErrandCategory = 'Groceries' | 'Parcels';
 
@@ -38,22 +42,124 @@ type Errand = {
 type DashboardTab = 'available' | 'mine';
 type CategoryFilter = 'All tasks' | ErrandCategory;
 
-// No sample errands.
-// These arrays can be replaced with backend data later.
-const availableErrands: Errand[] = [];
-const myErrands: Errand[] = [];
-
 export default function RunnerDashboard() {
-  const [isOnline, setIsOnline] = useState(true);
-  const [activeTab, setActiveTab] =
-    useState<DashboardTab>('available');
+  const router = useRouter();
 
+  const [isOnline, setIsOnline] = useState(true);
+  const [activeTab, setActiveTab] = useState<DashboardTab>('available');
   const [selectedCategory, setSelectedCategory] =
     useState<CategoryFilter>('All tasks');
 
-  // Earnings and completed-errand statistics are not
-  // available until the backend is connected.
+  const [availableErrands, setAvailableErrands] = useState<Errand[]>([]);
+  const [myErrands, setMyErrands] = useState<Errand[]>([]);
+  const [loadingErrands, setLoadingErrands] = useState(true);
+  const [errandLoadError, setErrandLoadError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const user = auth.currentUser;
+
+    if (!user) {
+      setAvailableErrands([]);
+      setMyErrands([]);
+      setErrandLoadError('Please sign in to view errands.');
+      setLoadingErrands(false);
+      return;
+    }
+
+    setLoadingErrands(true);
+    setErrandLoadError(null);
+
+    const availableQuery = query(
+      collection(db, 'errands'),
+      where('status', '==', 'pending'),
+      where('runnerId', '==', null),
+    );
+
+    const assignedQuery = query(
+      collection(db, 'errands'),
+      where('runnerId', '==', user.uid),
+      where('status', 'in', ['assigned', 'in_progress']),
+    );
+
+    const mapErrand = (document: {
+      id: string;
+      data: () => Record<string, any>;
+    }): Errand => {
+      const data = document.data();
+
+      const category: ErrandCategory =
+        data.category === 'Parcels' ? 'Parcels' : 'Groceries';
+
+      return {
+        id: document.id,
+        title: data.title ?? `${data.category ?? 'Errand'} request`,
+        category,
+        location:
+          data.collectionAddress ??
+          data.queueLocation ??
+          data.location ??
+          'Location not provided',
+        distance: '',
+        fee: Number(data.offeredFee ?? data.fee ?? 0),
+        description: data.description ?? '',
+        status: data.status ?? 'pending',
+      };
+    };
+
+    let availableLoaded = false;
+    let assignedLoaded = false;
+
+    const finishLoadingIfReady = () => {
+      if (availableLoaded && assignedLoaded) {
+        setLoadingErrands(false);
+      }
+    };
+
+    const unsubscribeAvailable = onSnapshot(
+      availableQuery,
+      (snapshot) => {
+        setAvailableErrands(snapshot.docs.map(mapErrand));
+        availableLoaded = true;
+        finishLoadingIfReady();
+      },
+      (error) => {
+        console.error(
+          '[Steppa] Could not load available errands:',
+          error,
+        );
+        setErrandLoadError(
+          'Could not load available errands. Check Firestore permissions.',
+        );
+        availableLoaded = true;
+        finishLoadingIfReady();
+      },
+    );
+
+    const unsubscribeAssigned = onSnapshot(
+      assignedQuery,
+      (snapshot) => {
+        setMyErrands(snapshot.docs.map(mapErrand));
+        assignedLoaded = true;
+        finishLoadingIfReady();
+      },
+      (error) => {
+        console.error(
+          '[Steppa] Could not load your errands:',
+          error,
+        );
+        setErrandLoadError(
+          'Could not load your assigned errands. Check Firestore permissions.',
+        );
+        assignedLoaded = true;
+        finishLoadingIfReady();
+      },
+    );
+
+    return () => {
+      unsubscribeAvailable();
+      unsubscribeAssigned();
+    };
+  }, []);
 
   const filteredErrands = availableErrands.filter((errand) => {
     if (selectedCategory === 'All tasks') {
@@ -64,29 +170,30 @@ export default function RunnerDashboard() {
   });
 
   const displayedErrands =
-    activeTab === 'available'
-      ? filteredErrands
-      : myErrands;
+    activeTab === 'available' ? filteredErrands : myErrands;
 
-  const handleViewErrand = (errand: Errand) => {
-    Alert.alert(
-      errand.title,
-      `Location: ${errand.location}\nFee: R${errand.fee.toFixed(
-        2
-      )}\n\n${errand.description}`,
-      [{ text: 'OK' }]
-    );
-  };
+const handleViewErrand = (errand: Errand) => {
+  router.push({
+pathname: "/(app)/customer-errand-details", 
+    params: { id: errand.id },
+  });
+};
 
   const handleNavigation = (page: string) => {
-    if (page === 'Home') {
-      return;
+    switch (page) {
+      case 'Home':
+        router.replace('/runner-home');
+        break;
+      case 'Activity':
+        router.push('/runner-analytics');
+        break;
+      case 'Wallet':
+        router.push('/(app)/runner-wallet');
+        break;
+      case 'Profile':
+        router.push('/edit-profile');
+        break;
     }
-
-    Alert.alert(
-      page,
-      `${page} navigation will be connected when the team's screens are ready.`
-    );
   };
 
   return (
@@ -97,33 +204,48 @@ export default function RunnerDashboard() {
           showsVerticalScrollIndicator={false}
         >
           {/* HEADER */}
-
           <View style={styles.header}>
             <View style={styles.headerText}>
-              <AppText variant="small">
-                STEPPA RUNNER
-              </AppText>
+              <AppText variant="small">STEPPA RUNNER</AppText>
 
-              <AppText variant="title">
-                Runner Dashboard
-              </AppText>
+              <AppText variant="title">Runner Dashboard</AppText>
 
               <AppText variant="secondary">
                 Find nearby errands and start earning.
               </AppText>
             </View>
 
-            <View style={styles.profileIcon}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Log out of Steppa"
+              onPress={async () => {
+                try {
+                  await signOut(auth);
+                  authActions.exitDemo();
+                  router.replace('/welcome');
+                } catch (error) {
+                  console.error(
+                    'Steppa runner logout failed:',
+                    error,
+                  );
+
+                  Alert.alert(
+                    'Logout failed',
+                    'We could not log you out. Please try again.',
+                  );
+                }
+              }}
+              style={styles.profileIcon}
+            >
               <Ionicons
-                name="person-outline"
+                name="log-out-outline"
                 size={24}
                 color={colors.primary}
               />
-            </View>
+            </Pressable>
           </View>
 
           {/* ONLINE STATUS */}
-
           <AppCard style={styles.availabilityCard}>
             <View style={styles.availabilityRow}>
               <View style={styles.availabilityDetails}>
@@ -143,9 +265,7 @@ export default function RunnerDashboard() {
                     variant="heading"
                     style={styles.statusTitle}
                   >
-                    {isOnline
-                      ? "You're online"
-                      : "You're offline"}
+                    {isOnline ? "You're online" : "You're offline"}
                   </AppText>
                 </View>
 
@@ -164,9 +284,7 @@ export default function RunnerDashboard() {
                   true: colors.primaryLight,
                 }}
                 thumbColor={
-                  isOnline
-                    ? colors.primary
-                    : colors.surface
+                  isOnline ? colors.primary : colors.surface
                 }
                 accessibilityLabel="Runner availability"
               />
@@ -174,7 +292,6 @@ export default function RunnerDashboard() {
           </AppCard>
 
           {/* EARNINGS SUMMARY */}
-
           <View style={styles.summaryRow}>
             <AppCard style={styles.summaryCard}>
               <View style={styles.summaryIcon}>
@@ -186,7 +303,7 @@ export default function RunnerDashboard() {
               </View>
 
               <AppText variant="secondary">
-                Today&apos;s earnings
+                Today's earnings
               </AppText>
 
               <AppText
@@ -228,97 +345,98 @@ export default function RunnerDashboard() {
           </View>
 
           {/* SECTION HEADER */}
-
           <View style={styles.sectionHeading}>
-            <AppText variant="heading">
-              Errands
-            </AppText>
+            <AppText variant="heading">Errands</AppText>
 
             <AppText variant="secondary">
               Browse available tasks or manage your errands.
             </AppText>
           </View>
 
-          {/* AVAILABLE / MY ERRANDS TABS */}
-
+          {/* TABS */}
           <View style={styles.tabsContainer}>
             <Pressable
-              onPress={() => setActiveTab('available')}
               style={[
                 styles.tab,
-                activeTab === 'available' &&
-                  styles.activeTab,
+                activeTab === 'available' && styles.activeTab,
               ]}
+              onPress={() => setActiveTab('available')}
+              accessibilityRole="button"
             >
               <AppText
                 style={[
                   styles.tabText,
-                  activeTab === 'available' &&
-                    styles.activeTabText,
+                  activeTab === 'available' && styles.activeTabText,
                 ]}
               >
-                Available errands
+                Available ({availableErrands.length})
               </AppText>
             </Pressable>
 
             <Pressable
-              onPress={() => setActiveTab('mine')}
               style={[
                 styles.tab,
-                activeTab === 'mine' &&
-                  styles.activeTab,
+                activeTab === 'mine' && styles.activeTab,
               ]}
+              onPress={() => setActiveTab('mine')}
+              accessibilityRole="button"
             >
               <AppText
                 style={[
                   styles.tabText,
-                  activeTab === 'mine' &&
-                    styles.activeTabText,
+                  activeTab === 'mine' && styles.activeTabText,
                 ]}
               >
-                My errands
+                My errands ({myErrands.length})
               </AppText>
             </Pressable>
           </View>
 
           {/* CATEGORY FILTERS */}
-
           {activeTab === 'available' && (
             <View style={styles.filters}>
-              {(
-                [
-                  'All tasks',
-                  'Groceries',
-                  'Parcels',
-                ] as CategoryFilter[]
-              ).map((category) => (
-                <Pressable
-                  key={category}
-                  onPress={() =>
-                    setSelectedCategory(category)
-                  }
-                  style={[
-                    styles.filterChip,
-                    selectedCategory === category &&
-                      styles.selectedFilterChip,
-                  ]}
-                >
-                  <AppText
+              {(['All tasks', 'Groceries', 'Parcels'] as const).map(
+                (category) => (
+                  <Pressable
+                    key={category}
+                    onPress={() => setSelectedCategory(category)}
                     style={[
-                      styles.filterText,
+                      styles.filterChip,
                       selectedCategory === category &&
-                        styles.selectedFilterText,
+                        styles.selectedFilterChip,
                     ]}
+                    accessibilityRole="button"
                   >
-                    {category}
-                  </AppText>
-                </Pressable>
-              ))}
+                    <AppText
+                      style={[
+                        styles.filterText,
+                        selectedCategory === category &&
+                          styles.selectedFilterText,
+                      ]}
+                    >
+                      {category}
+                    </AppText>
+                  </Pressable>
+                ),
+              )}
             </View>
           )}
 
-          {/* ERRAND LIST */}
+          {/* OFFLINE NOTICE */}
+          {!isOnline && (
+            <AppCard style={styles.noticeCard}>
+              <AppText variant="heading">
+                You're currently offline
+              </AppText>
 
+              <AppText variant="secondary">
+                You can browse errands, but switch online when you're ready
+                to receive requests.
+              </AppText>
+            </AppCard>
+          )}
+
+          {/* ERRAND LIST */}
           <View style={styles.errandList}>
             <View style={styles.listHeading}>
               <AppText
@@ -326,30 +444,24 @@ export default function RunnerDashboard() {
                 style={styles.listTitle}
               >
                 {activeTab === 'available'
-                  ? 'Nearby errands'
-                  : 'Your errands'}
+                  ? 'Available errands'
+                  : 'My errands'}
               </AppText>
 
-              <AppText variant="small">
-                {displayedErrands.length}{' '}
-                {displayedErrands.length === 1
-                  ? 'errand'
-                  : 'errands'}
+              <AppText variant="secondary">
+                {displayedErrands.length} found
               </AppText>
             </View>
 
-            {activeTab === 'available' &&
-              !isOnline && (
-                <AppCard style={styles.noticeCard}>
-                  <AppText variant="secondary">
-                    You are currently offline. Go online
-                    to make yourself available for new
-                    errands.
-                  </AppText>
-                </AppCard>
-              )}
-
-            {displayedErrands.length === 0 ? (
+            {loadingErrands ? (
+              <AppCard style={styles.emptyCard}>
+                <AppText>Loading errands...</AppText>
+              </AppCard>
+            ) : errandLoadError ? (
+              <AppCard style={styles.emptyCard}>
+                <AppText>{errandLoadError}</AppText>
+              </AppCard>
+            ) : displayedErrands.length === 0 ? (
               <AppCard style={styles.emptyCard}>
                 <View style={styles.emptyIcon}>
                   <Ionicons
@@ -428,15 +540,11 @@ export default function RunnerDashboard() {
                   />
 
                   <Pressable
-                    onPress={() =>
-                      handleViewErrand(errand)
-                    }
+                    onPress={() => handleViewErrand(errand)}
                     style={styles.viewButton}
                     accessibilityRole="button"
                   >
-                    <AppText
-                      style={styles.viewButtonText}
-                    >
+                    <AppText style={styles.viewButtonText}>
                       View errand
                     </AppText>
 
@@ -453,34 +561,19 @@ export default function RunnerDashboard() {
         </ScrollView>
 
         {/* BOTTOM NAVIGATION */}
-
         <View style={styles.bottomNavigation}>
           {(
             [
-              {
-                name: 'Home',
-                icon: 'home-outline',
-              },
-              {
-                name: 'Activity',
-                icon: 'time-outline',
-              },
-              {
-                name: 'Wallet',
-                icon: 'wallet-outline',
-              },
-              {
-                name: 'Profile',
-                icon: 'person-outline',
-              },
+              { name: 'Home', icon: 'home-outline' },
+              { name: 'Activity', icon: 'time-outline' },
+              { name: 'Wallet', icon: 'wallet-outline' },
+              { name: 'Profile', icon: 'person-outline' },
             ] as const
           ).map((item) => (
             <Pressable
               key={item.name}
               style={styles.navigationItem}
-              onPress={() =>
-                handleNavigation(item.name)
-              }
+              onPress={() => handleNavigation(item.name)}
               accessibilityRole="button"
             >
               <Ionicons

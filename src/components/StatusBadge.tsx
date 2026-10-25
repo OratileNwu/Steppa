@@ -1,35 +1,29 @@
-
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/AppText';
-import { radius, spacing, statusStyles, typography } from '@/theme';
-
-type ErrandStatus = keyof typeof statusStyles;
+import type { ErrandStatus } from '@/components/ErrandCard';
+import { colors, spacing, radius } from '@/theme';
 
 type StatusBadgeProps = {
   status: ErrandStatus;
 };
 
+const statusLabels: Record<ErrandStatus, string> = {
+  pending: 'Pending',
+  requested: 'Requested',
+  assigned: 'Assigned',
+  accepted: 'Accepted',
+  in_progress: 'In progress',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
+
 export function StatusBadge({ status }: StatusBadgeProps) {
-  const config = statusStyles[status];
+  const label = statusLabels[status] ?? 'Unknown';
 
   return (
-    <View
-      style={[
-        styles.badge,
-        { backgroundColor: config.backgroundColor },
-      ]}
-      accessibilityRole="text"
-      accessibilityLabel={`Errand status: ${config.label}`}
-    >
-      <AppText
-        style={[
-          styles.text,
-          { color: config.color },
-        ]}
-      >
-        {config.label}
-      </AppText>
+    <View style={styles.badge}>
+      <AppText style={styles.label}>{label}</AppText>
     </View>
   );
 }
@@ -37,12 +31,14 @@ export function StatusBadge({ status }: StatusBadgeProps) {
 const styles = StyleSheet.create({
   badge: {
     alignSelf: 'flex-start',
-    borderRadius: radius.pill,
-    paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primaryLight,
   },
-  text: {
-    fontSize: typography.caption,
+
+  label: {
+    color: colors.primary,
     fontWeight: '600',
   },
 });

@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+﻿import { useLocalSearchParams, useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useState } from 'react';
@@ -15,78 +15,229 @@ import { auth, db } from '@/lib/firebase';
 import { colors, spacing } from '@/theme';
 
 type Role = 'requester' | 'runner';
+type Errors = Partial<
+  Record<'name' | 'email' | 'password' | 'confirm' | 'form', string>
+>;
+
 const ROLES: { key: Role; label: string }[] = [
   { key: 'requester', label: 'I need errands' },
   { key: 'runner', label: 'I run errands' },
 ];
-type Errors = Partial<Record<'name' | 'email' | 'password' | 'confirm' | 'form', string>>;
+
 const link = { color: colors.primary, fontWeight: '700' } as const;
 
 export default function SignUpScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ role?: string }>();
-  const [role, setRole] = useState<Role>(params.role === 'runner' ? 'runner' : 'requester');
-  const [f, setF] = useState({ name: '', university: '', email: '', password: '', confirm: '' });
+
+  const [role, setRole] = useState<Role>(
+    params.role === 'runner' ? 'runner' : 'requester'
+  );
+  const [form, setForm] = useState({
+    name: '',
+    university: '',
+    email: '',
+    password: '',
+    confirm: '',
+  });
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
-  const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v }));
+
+  const updateField =
+    (field: keyof typeof form) => (value: string) => {
+      setForm((previous) => ({ ...previous, [field]: value }));
+    };
 
   const submit = async () => {
-    const e: Errors = {};
-    if (f.name.trim().length < 2) e.name = 'Tell us your name.';
-    if (!isEmail(f.email)) e.email = 'Enter a valid email address.';
-    if (f.password.length < 8) e.password = 'Use at least 8 characters.';
-    if (f.confirm !== f.password) e.confirm = 'Passwords don’t match.';
-    setErrors(e);
-    if (Object.keys(e).length) return;
+    const nextErrors: Errors = {};
+
+    if (form.name.trim().length < 2) {
+      nextErrors.name = 'Tell us your name.';
+    }
+    if (!isEmail(form.email)) {
+      nextErrors.email = 'Enter a valid email address.';
+    }
+    if (form.password.length < 8) {
+      nextErrors.password = 'Use at least 8 characters.';
+    }
+    if (form.confirm !== form.password) {
+      nextErrors.confirm = "Passwords don't match.";
+    }
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    if (!auth || !db) {
+      setErrors({ form: 'Authentication is not configured. Please try again later.' });
+      return;
+    }
+
     setLoading(true);
-    authActions.beginSignUp(); // keep the gate shut until the profile is saved
+    authActions.beginSignUp();
+
+    let createdUser: Awaited<
+      ReturnType<typeof createUserWithEmailAndPassword>
+    >['user'] | null = null;
+
     try {
-      const { user } = await createUserWithEmailAndPassword(auth, f.email.trim(), f.password);
-      try {
-        await updateProfile(user, { displayName: f.name.trim() });
-        await setDoc(doc(db, 'users', user.uid), {
-          name: f.name.trim(),
-          university: f.university.trim(),
-          email: f.email.trim().toLowerCase(),
-          role,
-          createdAt: serverTimestamp(),
-        });
-      } catch (profileErr) {
-        await user.delete().catch(() => {}); // don't leave an account with no profile behind
-        throw profileErr;
-      }
-    } catch (err: any) {
-      setErrors({ form: friendlyAuthError(err?.code) });
-      setLoading(false);
+      const credential = await createUserWithEmailAndPassword(
+        auth,
+        form.email.trim().toLowerCase(),
+        form.password
+      );
+
+      createdUser = credential.user;
+
+      await updateProfile(createdUser, {
+        displayName: form.name.trim(),
+      });
+
+      await setDoc(doc(db, 'users', createdUser.uid), {
+        uid: createdUser.uid,
+        name: form.name.trim(),
+        university: form.university.trim(),
+        email: form.email.trim().toLowerCase(),
+        role,
+        phoneNumber: '',
+        createdAt: serverTimestamp(),
+        
+      });
+      router.replace('/entry');
+
+      // The root layout will admit the authenticated user after this.
+    } catch (error: any) {
+      // Avoid deleting a successfully created account just because a later
+      // profile write failed: deletion can also fail and hide the real issue.
+      console.error('Steppa registration failed:', error);
+
+      setErrors({
+        form: error?.code
+          ? friendlyAuthError(error.code)
+          : 'Your account could not be completed. Check your connection and try again.',
+      });
     } finally {
-      authActions.endSignUp(); // on success this lets the root layout open the tabs
+      authActions.endSignUp();
+      setLoading(false);
     }
   };
 
   return (
-    <AuthLayout title="Join Steppa" subtitle="Two minutes to get your neighbourhood moving." onBack={() => (router.canGoBack() ? router.back() : router.replace('/welcome'))}>
-      <View style={{ flexDirection: 'row', backgroundColor: brand.mint, borderRadius: 16, padding: 4, marginBottom: spacing.md }}>
-        {ROLES.map((r) => {
-          const on = role === r.key;
+    <AuthLayout
+      title="Join Steppa"
+      subtitle="Two minutes to get your neighbourhood moving."
+      onBack={() =>
+        router.canGoBack() ? router.back() : router.replace('/welcome')
+      }
+    >
+      <View
+        style={{
+          flexDirection: 'row',
+          backgroundColor: brand.mint,
+          borderRadius: 16,
+          padding: 4,
+          marginBottom: spacing.md,
+        }}
+      >
+        {ROLES.map((item) => {
+          const selected = role === item.key;
+
           return (
-            <Pressable key={r.key} onPress={() => setRole(r.key)} accessibilityRole="button" accessibilityState={{ selected: on }} style={{ flex: 1, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? colors.primary : 'transparent' }}>
-              <AppText style={{ fontWeight: '700', fontSize: 13.5, color: on ? colors.textOnPrimary : colors.primary }}>{r.label}</AppText>
+            <Pressable
+              key={item.key}
+              onPress={() => setRole(item.key)}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              style={{
+                flex: 1,
+                height: 42,
+                borderRadius: 12,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: selected ? colors.primary : 'transparent',
+              }}
+            >
+              <AppText
+                style={{
+                  fontWeight: '700',
+                  fontSize: 13.5,
+                  color: selected ? colors.textOnPrimary : colors.primary,
+                }}
+              >
+                {item.label}
+              </AppText>
             </Pressable>
           );
         })}
       </View>
+
       <View style={{ gap: spacing.md }}>
-        <AppTextInput placeholder="Full name" autoCapitalize="words" autoComplete="name" value={f.name} onChangeText={set('name')} error={errors.name} />
-        <AppTextInput placeholder="University (optional)" autoCapitalize="words" value={f.university} onChangeText={set('university')} />
-        <AppTextInput placeholder="Email" keyboardType="email-address" autoComplete="email" textContentType="emailAddress" value={f.email} onChangeText={set('email')} error={errors.email} />
-        <AppTextInput placeholder="Password" secureTextEntry autoComplete="new-password" textContentType="newPassword" value={f.password} onChangeText={set('password')} error={errors.password} />
-        <AppTextInput placeholder="Confirm password" secureTextEntry autoComplete="new-password" textContentType="newPassword" value={f.confirm} onChangeText={set('confirm')} error={errors.confirm} />
+        <AppTextInput
+          placeholder="Full name"
+          autoCapitalize="words"
+          autoComplete="name"
+          value={form.name}
+          onChangeText={updateField('name')}
+          error={errors.name}
+        />
+        <AppTextInput
+          placeholder="University (optional)"
+          autoCapitalize="words"
+          value={form.university}
+          onChangeText={updateField('university')}
+        />
+        <AppTextInput
+          placeholder="Email"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          textContentType="emailAddress"
+          value={form.email}
+          onChangeText={updateField('email')}
+          error={errors.email}
+        />
+        <AppTextInput
+          placeholder="Password"
+          secureTextEntry
+          autoComplete="new-password"
+          textContentType="newPassword"
+          value={form.password}
+          onChangeText={updateField('password')}
+          error={errors.password}
+        />
+        <AppTextInput
+          placeholder="Confirm password"
+          secureTextEntry
+          autoComplete="new-password"
+          textContentType="newPassword"
+          value={form.confirm}
+          onChangeText={updateField('confirm')}
+          error={errors.confirm}
+        />
       </View>
-      {!!errors.form && <AppText variant="error" style={{ marginTop: spacing.md }}>{errors.form}</AppText>}
-      <PrimaryButton title="Create account" loading={loading} onPress={submit} style={{ marginTop: spacing.lg }} />
-      <Pressable onPress={() => router.replace('/sign-in')} style={{ alignItems: 'center', marginTop: spacing.lg }}>
-        <AppText variant="secondary">Already have an account? <AppText variant="secondary" style={link}>Sign in</AppText></AppText>
+
+      {!!errors.form && (
+        <AppText variant="error" style={{ marginTop: spacing.md }}>
+          {errors.form}
+        </AppText>
+      )}
+
+      <PrimaryButton
+        title="Create account"
+        loading={loading}
+        onPress={submit}
+        style={{ marginTop: spacing.lg }}
+      />
+
+      <Pressable
+        onPress={() => router.replace('/sign-in')}
+        style={{ alignItems: 'center', marginTop: spacing.lg }}
+      >
+        <AppText variant="secondary">
+          Already have an account?{' '}
+          <AppText variant="secondary" style={link}>
+            Sign in
+          </AppText>
+        </AppText>
       </Pressable>
     </AuthLayout>
   );
