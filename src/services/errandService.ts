@@ -105,8 +105,24 @@ export async function completeErrand(id: string): Promise<void> {
     const snap = await tx.get(ref);
     if (!snap.exists()) throw new Error("Errand not found.");
     const data = snap.data();
-    if (data.runnerId !== user.uid || data.status !== "in_progress") throw new Error("Only the assigned runner can complete an in-progress errand.");
-    tx.update(ref, { status: "completed", statusTimes: { ...(data.statusTimes ?? {}), completed: new Date().toISOString() }, updatedAt: serverTimestamp() });
+    if ((data.runnerId ?? data.assignedRunnerId) !== user.uid || data.status !== "in_progress") throw new Error("Only the assigned runner can report completion for an in-progress errand.");
+    const now = new Date().toISOString();
+    tx.update(ref, { status: "awaiting_customer_confirmation", completionReportedBy: user.uid, completionReportedAt: now, statusTimes: { ...(data.statusTimes ?? {}), awaiting_customer_confirmation: now }, updatedAt: serverTimestamp() });
+  });
+}
+
+export async function confirmErrandCompletion(id: string, confirmed: boolean): Promise<void> {
+  const user = userOrThrow(), ref = doc(db, "errands", id);
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) throw new Error("Errand not found.");
+    const data = snap.data();
+    if (data.customerId !== user.uid) throw new Error("Only the customer who requested this errand can respond.");
+    if (data.status !== "awaiting_customer_confirmation") throw new Error("This errand is not awaiting confirmation.");
+    const now = new Date().toISOString();
+    tx.update(ref, confirmed
+      ? { status: "completed", customerConfirmedCompletion: true, customerConfirmedAt: now, statusTimes: { ...(data.statusTimes ?? {}), completed: now }, updatedAt: serverTimestamp() }
+      : { status: "completion_disputed", customerConfirmedCompletion: false, customerReportedProblemAt: now, statusTimes: { ...(data.statusTimes ?? {}), completion_disputed: now }, updatedAt: serverTimestamp() });
   });
 }
 
