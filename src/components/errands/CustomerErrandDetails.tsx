@@ -26,6 +26,7 @@ type Props = {
     id: string,
     accept: boolean,
   ) => Promise<void>;
+  onConfirmCompletion?: (confirmed: boolean) => Promise<void>;
 };
 
 const steps: {
@@ -86,8 +87,12 @@ function statusDescription(errand: RunnerErrand) {
       return "Your Steppa has accepted the errand and has not started yet.";
     case "in_progress":
       return "Your Steppa is working on your errand.";
+    case "awaiting_customer_confirmation":
+      return "Your Steppa reports delivery. Please confirm receipt or report a problem.";
+    case "completion_disputed":
+      return "You reported a problem. This errand needs follow-up.";
     case "completed":
-      return "Your Steppa has marked this errand as complete.";
+      return "You confirmed this errand was completed.";
     case "cancelled":
       return "This errand has been cancelled.";
   }
@@ -98,6 +103,7 @@ export default function CustomerErrandDetails({
   runnerName,
   onBack,
   onRespondToCounterOffer,
+  onConfirmCompletion,
 }: Props) {
   const [busy, setBusy] = useState<"accept" | "decline" | null>(
     null,
@@ -393,6 +399,27 @@ export default function CustomerErrandDetails({
           <AppText variant="error" accessibilityRole="alert">
             {error}
           </AppText>
+        ) : null}
+
+        {errand.status === "awaiting_customer_confirmation" && onConfirmCompletion ? (
+          <AppCard>
+            <AppText variant="heading">Did your errand arrive?</AppText>
+            <AppText>Your Steppa has reported delivery. Confirm only if the task was completed as requested.</AppText>
+            <PrimaryButton title="Confirm completion" onPress={() => {
+              if (actionInProgress.current) return;
+              actionInProgress.current = true;
+              setError("");
+              void onConfirmCompletion(true).catch((e) => setError(e instanceof Error ? e.message : "Could not confirm completion.")).finally(() => { actionInProgress.current = false; });
+            }} />
+            <Pressable accessibilityRole="button" onPress={() => {
+              if (actionInProgress.current) return;
+              actionInProgress.current = true;
+              setError("");
+              void onConfirmCompletion(false).catch((e) => setError(e instanceof Error ? e.message : "Could not report the problem.")).finally(() => { actionInProgress.current = false; });
+            }} style={styles.outlineButton}>
+              <AppText style={styles.link}>Report a problem</AppText>
+            </Pressable>
+          </AppCard>
         ) : null}
 
         <AppCard>
