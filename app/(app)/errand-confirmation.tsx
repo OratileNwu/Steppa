@@ -27,7 +27,7 @@ export default function ErrandConfirmationScreen() {
 
       <Pressable
         style={styles.button}
-        onPress={() => router.replace("/runner-home")}
+        onPress={() => router.replace("/(app)/(tabs)")}
       >
         <Text style={styles.buttonText}>Back to dashboard</Text>
       </Pressable>
