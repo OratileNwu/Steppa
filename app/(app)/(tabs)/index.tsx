@@ -53,7 +53,6 @@ export default function HomeScreen() {
   const router = useRouter();
   const [activeErrand, setActiveErrand] = useState<StepperErrand | null>(null);
   const [errandLoading, setErrandLoading] = useState(true);
-  const [completedErrandsCount, setCompletedErrandsCount] = useState(0);
 
   useEffect(() => {
     let stopErrands: (() => void) | undefined;
@@ -65,7 +64,6 @@ export default function HomeScreen() {
       setActiveErrand(null);
 
       if (!user) {
-        setCompletedErrandsCount(0);
         setErrandLoading(false);
         return;
       }
@@ -83,10 +81,6 @@ export default function HomeScreen() {
             id: document.id,
             ...document.data(),
           }));
-          setCompletedErrandsCount(
-            customerErrands.filter((item) => String(item.status) === "completed").length,
-          );
-
           const active = customerErrands
             .filter((item) => ACTIVE_STATUSES.has(String(item.status)))
             .sort((a, b) => {
@@ -103,7 +97,6 @@ export default function HomeScreen() {
         (error) => {
           console.error("[Steppa] Could not load active customer errand:", error);
           setActiveErrand(null);
-          setCompletedErrandsCount(0);
           setErrandLoading(false);
         },
       );
@@ -122,7 +115,6 @@ export default function HomeScreen() {
       onOpenWallet={() => router.push("/runner-wallet")}
       activeErrand={activeErrand}
       loading={errandLoading}
-      completedErrandsCount={completedErrandsCount}
       onOpenErrand={(id) =>
         router.push({
           pathname: "/customer-errand-details",
