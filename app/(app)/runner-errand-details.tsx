@@ -125,10 +125,11 @@ export default function RunnerErrandDetailsRoute() {
           data.collectionAddress ??
           "Location not provided",
       ),
+      // Keep the customer's original offer separate from the accepted price.
       fee: Number(
         data.offeredFee ??
-          data.fee ??
           data.recommendedFee ??
+          data.fee ??
           0,
       ),
       agreedFee:
