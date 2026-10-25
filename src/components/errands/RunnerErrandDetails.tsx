@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
   },
   feeRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    flexWrap: "nowrap",
     justifyContent: "space-between",
     alignItems: "center",
     gap: spacing.sm,
@@ -690,6 +690,8 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: typography.subtitle,
     fontWeight: "700",
+    flexShrink: 0,
+    fontVariant: ["tabular-nums"],
   },
   progressRow: {
     flexDirection: "row",
