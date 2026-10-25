@@ -50,9 +50,19 @@ const steps: {
     description: "Your Steppa has started the errand.",
   },
   {
+    status: "awaiting_customer_confirmation",
+    title: "Awaiting your confirmation",
+    description: "Your Steppa reports delivery. Confirm receipt or report a problem.",
+  },
+  {
+    status: "completion_disputed",
+    title: "Problem reported",
+    description: "This errand needs follow-up.",
+  },
+  {
     status: "completed",
     title: "Completed",
-    description: "Your Steppa has marked the errand as complete.",
+    description: "You confirmed this errand was completed.",
   },
 ];
 
