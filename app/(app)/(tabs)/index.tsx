@@ -113,15 +113,7 @@ export default function HomeScreen() {
       onOpenProfile={() => router.push("/account")}
       onRequestErrand={() => router.push("/create-errand")}
       onOpenWallet={() => router.push("/runner-wallet")}
-      activeErrand={activeErrand}
-      loading={errandLoading}
-      onOpenErrand={(id) =>
-        router.push({
-          pathname: "/customer-errand-details",
-          params: { id },
-        })
-      }
-      onViewAllErrands={() => router.push("/my-errands")}
+onViewAllErrands={() => router.push("/(app)/my-errands")}
       onSubmitQueue={async (request) => {
         await submitQueueRequest(request);
       }}

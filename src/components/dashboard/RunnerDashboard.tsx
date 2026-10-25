@@ -75,14 +75,22 @@ export default function RunnerDashboard() {
 const availableQuery = query(
   collection(db, "errands"),
   where("status", "in", ["requested", "pending"]),
-  where("runnerId", "==", null)
+  where("runnerId", "==", null),
+  where("assignedRunnerId", "==", null)
 );
 
-// The service assigns errands with status "accepted", not "assigned".
 const assignedQuery = query(
   collection(db, "errands"),
   where("runnerId", "==", user.uid),
-  where("status", "in", ["accepted", "assigned", "in_progress", "awaiting_customer_confirmation", "completion_disputed", "completed"])
+  where("assignedRunnerId", "==", user.uid),
+  where("status", "in", [
+    "accepted",
+    "assigned",
+    "in_progress",
+    "awaiting_customer_confirmation",
+    "completion_disputed",
+    "completed"
+  ])
 );
 
     const mapErrand = (document: {
