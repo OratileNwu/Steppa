@@ -37,6 +37,7 @@ type Errand = {
   fee: number;
   description: string;
   status: ErrandStatus;
+  completedAt?: any;
 };
 
 type DashboardTab = 'available' | 'mine';
@@ -115,10 +116,11 @@ const category: ErrandCategory =
           data.location ??
           'Location not provided',
         distance: '',
-        fee: Number(data.offeredFee ?? data.fee ?? 0),
+        fee: Number(data.agreedFee ?? data.offeredFee ?? data.fee ?? data.recommendedFee ?? 0),
         description: data.description ?? '',
         // ErrandCard displays new requests with the legacy pending label.
         status: data.status === 'requested' ? 'pending' : (data.status ?? 'pending'),
+        completedAt: data.statusTimes?.completed ?? data.customerConfirmedAt ?? data.completedAt,
       };
     };
 
@@ -184,7 +186,7 @@ const category: ErrandCategory =
   const todayEarnings = myErrands
     .filter((errand) => {
       if (errand.status !== 'completed') return false;
-      const raw = (errand as Errand & { completedAt?: any }).completedAt;
+      const raw = errand.completedAt;
       const date = raw?.toDate ? raw.toDate() : raw ? new Date(raw) : null;
       return date instanceof Date && !Number.isNaN(date.getTime()) &&
         date.toDateString() === new Date().toDateString();
