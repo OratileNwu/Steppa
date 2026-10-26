@@ -109,3 +109,24 @@ Avoid committing directly to `main` when working on a shared feature.
 ---
 
 *Steppa — Your Neighbourhood. On the Move.*
+## Hackathon build notes
+
+### Android APK (internal testing)
+
+The repository includes an EAS `preview` profile configured to produce an installable Android APK. From a clean checkout, run:
+
+```bash
+npm ci
+npx expo-doctor
+npx eas-cli build --platform android --profile preview
+```
+
+Sign in to the Expo account with access to the configured EAS project when prompted. Download the APK from the completed EAS build page and install it on a test Android phone. Build completion and device testing must be verified by the team; configuration alone does not mean an APK has already been built or tested.
+
+### Safety prototype limitation
+
+The runner dashboard includes a visible SOS prototype button for demonstration. At this stage it only displays an explanatory message. It does **not** contact emergency services, notify nearby runners, upload an emergency event, or share background/live location. Do not rely on it for real emergencies.
+
+### Maps and location status
+
+The web map implementation uses MapLibre. The native `SteppaMap` component remains a placeholder until native map rendering, location permissions, and device testing are implemented. Do not describe native live tracking as working until it has been verified on physical Android devices.
