@@ -6,8 +6,6 @@ import { AppText } from "@/components/AppText";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { spacing } from "@/theme";
 
-import type { SteppaMapProps } from "./types";
-
 /**
  * Native fallback for route review. The web build has the interactive MapLibre
  * map; this Android/iOS view provides clear route details and opens the device's
@@ -17,8 +15,11 @@ export default function SteppaMap({
   initialCollection = "",
   initialDestination = "",
   queueOnly = false,
-  onConfirm,
-}: SteppaMapProps) {
+}: {
+  initialCollection?: string;
+  initialDestination?: string;
+  queueOnly?: boolean;
+}) {
   const [error, setError] = useState("");
 
   const collection = initialCollection.trim();
@@ -30,11 +31,8 @@ export default function SteppaMap({
       return;
     }
 
-    const destinationQuery = destination && !queueOnly
-      ? `&destination=${encodeURIComponent(destination)}`
-      : "";
     const url = destination && !queueOnly
-      ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(collection)}${destinationQuery}`
+      ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(collection)}&destination=${encodeURIComponent(destination)}`
       : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(collection)}`;
 
     try {
@@ -43,24 +41,6 @@ export default function SteppaMap({
     } catch {
       setError("Could not open a maps app on this device. Check that a browser or maps app is installed.");
     }
-  }
-
-  function confirmRoute() {
-    if (!collection) {
-      setError("Add a collection or queue location first.");
-      return;
-    }
-
-    // Address-only route review: the native fallback has no geocoding service,
-    // so it must not invent coordinates or distance estimates.
-    onConfirm?.({
-      collection: { label: collection, coordinates: [0, 0] },
-      destination: destination && !queueOnly
-        ? { label: destination, coordinates: [0, 0] }
-        : null,
-      distanceMeters: null,
-      durationSeconds: null,
-    });
   }
 
   return (
@@ -87,13 +67,6 @@ export default function SteppaMap({
           title="Open directions"
           onPress={() => { void openDirections(); }}
         />
-
-        {onConfirm ? (
-          <PrimaryButton
-            title="Confirm locations"
-            onPress={confirmRoute}
-          />
-        ) : null}
 
         {error ? <AppText variant="error">{error}</AppText> : null}
 
