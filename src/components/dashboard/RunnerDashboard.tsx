@@ -319,6 +319,24 @@ const handleViewErrand = (errand: Errand) => {
             </View>
           </AppCard>
 
+          {/* SOS PROTOTYPE — visible UI only; no alert is sent yet */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="SOS emergency prototype"
+            onPress={() => Alert.alert(
+              'SOS is a prototype',
+              'This button is not connected to emergency services or runner alerts yet. If you are in immediate danger, call your local emergency number now.'
+            )}
+            style={styles.sosButton}
+          >
+            <Ionicons name="alert-circle" size={25} color="#FFFFFF" />
+            <View style={styles.sosCopy}>
+              <AppText style={styles.sosTitle}>SOS emergency</AppText>
+              <AppText style={styles.sosSubtitle}>Safety feature preview · not connected yet</AppText>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+          </Pressable>
+
           {/* EARNINGS SUMMARY */}
           <View style={styles.summaryRow}>
             <AppCard style={styles.summaryCard}>
@@ -713,6 +731,20 @@ const styles = StyleSheet.create({
   statusTitle: {
     fontSize: typography.subtitle,
   },
+
+  sosButton: {
+    minHeight: 68,
+    borderRadius: radius.md,
+    backgroundColor: '#C62828',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  sosCopy: { flex: 1, gap: 2 },
+  sosTitle: { color: '#FFFFFF', fontWeight: '800', fontSize: typography.body },
+  sosSubtitle: { color: '#FFFFFF', fontSize: typography.small },
 
   summaryRow: {
     flexDirection: 'row',
