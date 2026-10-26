@@ -11,6 +11,8 @@ export type ErrandStatus =
   | 'assigned'
   | 'accepted'
   | 'in_progress'
+  | 'awaiting_customer_confirmation'
+  | 'completion_disputed'
   | 'completed'
   | 'cancelled';
 

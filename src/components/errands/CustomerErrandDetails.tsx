@@ -1,9 +1,14 @@
+
+import { submitErrandRating } from "@/services/ratingService";
+
+
 import { useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
   StyleSheet,
-  View,
+    View,
+    TextInput,
 } from "react-native";
 
 import { AppCard } from "@/components/AppCard";
@@ -21,11 +26,14 @@ import type {
 type Props = {
   errand: RunnerErrand;
   runnerName?: string;
+  runnerRating?: number | null;
+  runnerRatingCount?: number;
   onBack: () => void;
   onRespondToCounterOffer?: (
     id: string,
     accept: boolean,
   ) => Promise<void>;
+  onConfirmCompletion?: (confirmed: boolean) => Promise<void>;
 };
 
 const steps: {
@@ -49,9 +57,20 @@ const steps: {
     description: "Your Steppa has started the errand.",
   },
   {
+    status: "awaiting_customer_confirmation",
+    title: "Awaiting your confirmation",
+    description:
+      "Your Steppa reports delivery. Confirm receipt or report a problem.",
+  },
+  {
+    status: "completion_disputed",
+    title: "Problem reported",
+    description: "This errand needs follow-up.",
+  },
+  {
     status: "completed",
     title: "Completed",
-    description: "Your Steppa has marked the errand as complete.",
+    description: "You confirmed this errand was completed.",
   },
 ];
 
@@ -82,12 +101,22 @@ function statusDescription(errand: RunnerErrand) {
       return errand.counterOffer?.status === "pending"
         ? "A Steppa has proposed a different fee. Review it below."
         : "Waiting for a Steppa to accept your errand.";
+
     case "accepted":
       return "Your Steppa has accepted the errand and has not started yet.";
+
     case "in_progress":
       return "Your Steppa is working on your errand.";
+
+    case "awaiting_customer_confirmation":
+      return "Your Steppa reports delivery. Please confirm receipt or report a problem.";
+
+    case "completion_disputed":
+      return "You reported a problem. This errand needs follow-up.";
+
     case "completed":
-      return "Your Steppa has marked this errand as complete.";
+      return "You confirmed this errand was completed.";
+
     case "cancelled":
       return "This errand has been cancelled.";
   }
@@ -96,13 +125,25 @@ function statusDescription(errand: RunnerErrand) {
 export default function CustomerErrandDetails({
   errand,
   runnerName,
+  runnerRating,
+  runnerRatingCount = 0,
   onBack,
   onRespondToCounterOffer,
+  onConfirmCompletion,
 }: Props) {
   const [busy, setBusy] = useState<"accept" | "decline" | null>(
     null,
   );
-  const [error, setError] = useState("");
+    const [error, setError] = useState("");
+
+    const [selectedRating, setSelectedRating] = useState(0);
+    const [ratingReview, setRatingReview] = useState("");
+    const [ratingBusy, setRatingBusy] = useState(false);
+    const [ratingError, setRatingError] = useState("");
+    const [ratingNotice, setRatingNotice] = useState("");
+    const [ratingSubmitted, setRatingSubmitted] = useState(false);
+
+
   const actionInProgress = useRef(false);
 
   const queueOnly = errand.category === "Queue for me";
@@ -156,7 +197,61 @@ export default function CustomerErrandDetails({
       actionInProgress.current = false;
       setBusy(null);
     }
-  }
+    }
+
+    async function submitRating() {
+        const runnerId = errand.assignedRunnerId;
+
+        if (!runnerId) {
+            setRatingError("There is no assigned Steppa to rate.");
+            return;
+        }
+
+        if (errand.status !== "completed") {
+            setRatingError("You can only rate a completed errand.");
+            return;
+        }
+
+        if (ratingSubmitted || ratingBusy) {
+            return;
+        }
+
+        if (selectedRating < 1 || selectedRating > 5) {
+            setRatingError("Please select a rating from 1 to 5 stars.");
+            return;
+        }
+
+        setRatingBusy(true);
+        setRatingError("");
+        setRatingNotice("");
+
+        try {
+            await submitErrandRating(
+                errand.id,
+                runnerId,
+                selectedRating,
+                ratingReview,
+            );
+
+            setRatingSubmitted(true);
+            setRatingNotice("Your rating has been submitted. Thank you!");
+        } catch (caughtError) {
+            setRatingError(
+                caughtError instanceof Error
+                    ? caughtError.message
+                    : "Your rating could not be submitted. Please try again.",
+            );
+        } finally {
+            setRatingBusy(false);
+        }
+    }
+
+
+
+  const hasRating =
+    typeof runnerRating === "number" &&
+    Number.isFinite(runnerRating) &&
+    runnerRatingCount > 0;
 
   return (
     <ScrollView
@@ -201,7 +296,104 @@ export default function CustomerErrandDetails({
           <AppText accessibilityLiveRegion="polite">
             {statusDescription(errand)}
           </AppText>
-        </AppCard>
+              </AppCard>
+
+
+              {errand.status === "completed" &&
+                  errand.assignedRunnerId ? (
+                  <AppCard>
+                      <AppText variant="heading">
+                          Rate your Steppa
+                      </AppText>
+
+                      <AppText>
+                          How was your experience with this Steppa?
+                      </AppText>
+
+                      {ratingSubmitted ? (
+                          <AppText accessibilityLiveRegion="polite">
+                              {ratingNotice}
+                          </AppText>
+                      ) : (
+                          <>
+                              <View style={styles.ratingStars}>
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                      <Pressable
+                                          key={star}
+                                          accessibilityRole="button"
+                                          accessibilityLabel={`${star} star${star === 1 ? "" : "s"}`}
+                                          accessibilityState={{
+                                              selected: selectedRating === star,
+                                              disabled: ratingBusy,
+                                          }}
+                                          disabled={ratingBusy}
+                                          onPress={() => {
+                                              setSelectedRating(star);
+                                              setRatingError("");
+                                          }}
+                                          style={styles.starButton}
+                                      >
+                                          <AppText style={styles.starText}>
+                                              {star <= selectedRating ? "★" : "☆"}
+                                          </AppText>
+                                      </Pressable>
+                                  ))}
+                              </View>
+
+                              <AppText variant="small">
+                                  {selectedRating === 0
+                                      ? "Select a rating from 1 to 5."
+                                      : `${selectedRating} out of 5 stars`}
+                              </AppText>
+
+                              <TextInput
+                                  accessibilityLabel="Optional review"
+                                  value={ratingReview}
+                                  onChangeText={(value) => {
+                                      setRatingReview(value);
+                                      setRatingError("");
+                                  }}
+                                  placeholder="Write an optional review (500 characters max)"
+                                  multiline
+                                  maxLength={500}
+                                  editable={!ratingBusy}
+                                  textAlignVertical="top"
+                                  style={styles.reviewInput}
+                              />
+
+                              <AppText variant="small">
+                                  {ratingReview.length}/500 characters
+                              </AppText>
+
+                              {ratingError ? (
+                                  <AppText
+                                      variant="error"
+                                      accessibilityRole="alert"
+                                  >
+                                      {ratingError}
+                                  </AppText>
+                              ) : null}
+
+                              {ratingNotice ? (
+                                  <AppText accessibilityLiveRegion="polite">
+                                      {ratingNotice}
+                                  </AppText>
+                              ) : null}
+
+                              <PrimaryButton
+                                  title={
+                                      ratingBusy
+                                          ? "Submitting rating..."
+                                          : "Submit rating"
+                                  }
+                                  disabled={ratingBusy || selectedRating === 0}
+                                  onPress={() => void submitRating()}
+                              />
+                          </>
+                      )}
+                  </AppCard>
+              ) : null}
+
 
         <AppCard>
           <AppText variant="heading">Journey</AppText>
@@ -301,6 +493,20 @@ export default function CustomerErrandDetails({
               : "No Steppa assigned yet"}
           </AppText>
 
+          {errand.assignedRunnerId ? (
+            hasRating ? (
+              <AppText>
+                ★ {runnerRating!.toFixed(1)} / 5 (
+                {runnerRatingCount}{" "}
+                {runnerRatingCount === 1 ? "review" : "reviews"})
+              </AppText>
+            ) : (
+              <AppText variant="secondary">
+                No ratings yet
+              </AppText>
+            )
+          ) : null}
+
           <AppText variant="secondary">
             {errand.assignedRunnerId
               ? "Progress below reflects the latest errand status supplied to this screen."
@@ -395,6 +601,69 @@ export default function CustomerErrandDetails({
           </AppText>
         ) : null}
 
+        {errand.status === "awaiting_customer_confirmation" &&
+        onConfirmCompletion ? (
+          <AppCard>
+            <AppText variant="heading">
+              Did your errand arrive?
+            </AppText>
+
+            <AppText>
+              Your Steppa has reported delivery. Confirm only if the
+              task was completed as requested.
+            </AppText>
+
+            <PrimaryButton
+              title="Confirm completion"
+              onPress={() => {
+                if (actionInProgress.current) return;
+
+                actionInProgress.current = true;
+                setError("");
+
+                void onConfirmCompletion(true)
+                  .catch((caughtError) =>
+                    setError(
+                      caughtError instanceof Error
+                        ? caughtError.message
+                        : "Could not confirm completion.",
+                    ),
+                  )
+                  .finally(() => {
+                    actionInProgress.current = false;
+                  });
+              }}
+            />
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                if (actionInProgress.current) return;
+
+                actionInProgress.current = true;
+                setError("");
+
+                void onConfirmCompletion(false)
+                  .catch((caughtError) =>
+                    setError(
+                      caughtError instanceof Error
+                        ? caughtError.message
+                        : "Could not report the problem.",
+                    ),
+                  )
+                  .finally(() => {
+                    actionInProgress.current = false;
+                  });
+              }}
+              style={styles.outlineButton}
+            >
+              <AppText style={styles.link}>
+                Report a problem
+              </AppText>
+            </Pressable>
+          </AppCard>
+        ) : null}
+
         <AppCard>
           <AppText variant="heading">
             Errand progress
@@ -404,9 +673,7 @@ export default function CustomerErrandDetails({
             <AppText>
               This errand was cancelled
               {dateLabel(errand.statusTimes?.cancelled)
-                ? ` on ${dateLabel(
-                    errand.statusTimes?.cancelled,
-                  )}`
+                ? ` on ${dateLabel(errand.statusTimes?.cancelled)}`
                 : ""}
               .
             </AppText>
@@ -572,5 +839,32 @@ const styles = StyleSheet.create({
   currentTitle: {
     color: colors.primary,
     fontWeight: "700",
-  },
+    },
+
+    ratingStars: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.sm,
+        marginVertical: spacing.sm,
+    },
+    starButton: {
+        minWidth: 40,
+        minHeight: 44,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    starText: {
+        fontSize: 30,
+        color: colors.primary,
+    },
+    reviewInput: {
+        minHeight: 100,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: radius.md,
+        padding: spacing.sm,
+        color: colors.text,
+        backgroundColor: colors.background,
+    },
+
 });

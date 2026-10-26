@@ -3,6 +3,7 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
+import { Alert } from 'react-native';
 
 import { AppText } from '@/components/AppText';
 import { AppTextInput } from '@/components/AppTextInput';
@@ -102,19 +103,22 @@ export default function SignUpScreen() {
         createdAt: serverTimestamp(),
         
       });
+await setDoc(doc(db, 'publicProfiles', createdUser.uid), {
+  name: form.name.trim(),
+  averageRating: 0,
+  ratingCount: 0,
+});
+
       router.replace('/entry');
 
       // The root layout will admit the authenticated user after this.
     } catch (error: any) {
-      // Avoid deleting a successfully created account just because a later
-      // profile write failed: deletion can also fail and hide the real issue.
-      console.error('Steppa registration failed:', error);
+        console.error('Steppa registration failed:', error);
 
-      setErrors({
-        form: error?.code
-          ? friendlyAuthError(error.code)
-          : 'Your account could not be completed. Check your connection and try again.',
-      });
+        Alert.alert(
+            'Registration failed',
+            `${error?.code ?? 'unknown'}\n${error?.message ?? 'No error message available'}`
+        );
     } finally {
       authActions.endSignUp();
       setLoading(false);

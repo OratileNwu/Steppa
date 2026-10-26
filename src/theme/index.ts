@@ -211,6 +211,16 @@ export const statusStyles = {
     color: colors.warning,
     label: "In progress",
   },
+  awaiting_customer_confirmation: {
+    backgroundColor: colors.warningBackground,
+    color: colors.warning,
+    label: "Awaiting customer",
+  },
+  completion_disputed: {
+    backgroundColor: colors.errorBackground,
+    color: colors.error,
+    label: "Problem reported",
+  },
   completed: {
     backgroundColor: colors.successBackground,
     color: colors.success,

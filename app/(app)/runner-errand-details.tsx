@@ -96,15 +96,15 @@ export default function RunnerErrandDetailsRoute() {
             ? "Queue for me"
             : "Other errands";
 
-    const statuses: Record<
-      string,
-      RunnerErrand["status"]
-    > = {
+    const statuses: Record<string, RunnerErrand["status"]> = {
       requested: "requested",
       pending: "requested",
       accepted: "accepted",
       assigned: "accepted",
       in_progress: "in_progress",
+      awaiting_customer_confirmation:
+        "awaiting_customer_confirmation",
+      completion_disputed: "completion_disputed",
       completed: "completed",
       cancelled: "cancelled",
     };
@@ -113,9 +113,8 @@ export default function RunnerErrandDetailsRoute() {
 
     return {
       id,
-      title: String(
-        data.title ?? `${category} request`,
-      ),
+      customerId: String(data.customerId ?? ""),
+      title: String(data.title ?? `${ category } request`),
       category,
       location: String(
         data.location ??
@@ -125,17 +124,19 @@ export default function RunnerErrandDetailsRoute() {
       ),
       fee: Number(
         data.offeredFee ??
-          data.fee ??
           data.recommendedFee ??
+          data.fee ??
           0,
+      ),
+      paymentMethod: String(
+        data.paymentMethod ?? "Not selected",
       ),
       agreedFee:
         data.agreedFee == null
           ? undefined
           : Number(data.agreedFee),
       description: String(data.description ?? ""),
-      status:
-        statuses[String(data.status)] ?? "requested",
+      status: statuses[String(data.status)] ?? "requested",
       assignedRunnerId:
         data.assignedRunnerId ??
         data.runnerId ??
@@ -242,9 +243,7 @@ export default function RunnerErrandDetailsRoute() {
           backgroundColor: colors.background,
         }}
       >
-        <Text>
-          {error ?? "Errand unavailable."}
-        </Text>
+        <Text>{error ?? "Errand unavailable."}</Text>
 
         <Text
           onPress={handleBack}

@@ -24,7 +24,10 @@ import { AppText } from "@/components/AppText";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import CustomerErrandDetails from "@/components/errands/CustomerErrandDetails";
 import type { RunnerErrand } from "@/components/errands/RunnerErrandDetails";
-import { respondToCounterOffer } from "@/services/errandService";
+import {
+  confirmErrandCompletion,
+  respondToCounterOffer,
+} from "@/services/errandService";
 import { colors, spacing } from "@/theme";
 
 function getErrorMessage(error: unknown): string {
@@ -61,6 +64,10 @@ export default function CustomerErrandDetailsRoute() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [runnerName, setRunnerName] = useState("");
+  const [runnerRating, setRunnerRating] = useState<number | null>(null);
+  const [runnerRatingCount, setRunnerRatingCount] = useState(0);
+
   const handleBack = useCallback(() => {
     if (router.canGoBack()) {
       router.back();
@@ -69,6 +76,7 @@ export default function CustomerErrandDetailsRoute() {
     }
   }, [router]);
 
+  // Listen for live changes to this errand.
   useEffect(() => {
     if (!errandId) {
       setErrand(null);
@@ -100,9 +108,7 @@ export default function CustomerErrandDetailsRoute() {
         }
 
         try {
-          setErrand(
-            toRunnerErrand(snapshot.id, snapshot.data()),
-          );
+          setErrand(toRunnerErrand(snapshot.id, snapshot.data()));
           setError("");
         } catch (caughtError) {
           setErrand(null);
@@ -114,10 +120,7 @@ export default function CustomerErrandDetailsRoute() {
       (caughtError) => {
         if (!active) return;
 
-        console.error(
-          "Customer errand subscription failed:",
-          caughtError,
-        );
+        console.error("Customer errand subscription failed:", caughtError);
 
         setErrand(null);
         setError(
@@ -133,10 +136,78 @@ export default function CustomerErrandDetailsRoute() {
     };
   }, [errandId]);
 
-  /**
-   * CustomerErrandDetails expects:
-   * (id: string, accept: boolean) => Promise<void>
-   */
+  // Read only the public profile, never the private users document.
+  const assignedRunnerId = errand?.assignedRunnerId;
+
+  useEffect(() => {
+    let active = true;
+
+    if (!assignedRunnerId) {
+      setRunnerName("");
+      setRunnerRating(null);
+      setRunnerRatingCount(0);
+      return;
+    }
+
+    setRunnerName("");
+    setRunnerRating(null);
+    setRunnerRatingCount(0);
+
+    const profileRef = doc(db, "publicProfiles", assignedRunnerId);
+
+    const unsubscribe = onSnapshot(
+      profileRef,
+      (snapshot) => {
+        if (!active) return;
+
+        if (!snapshot.exists()) {
+          setRunnerName("");
+          setRunnerRating(null);
+          setRunnerRatingCount(0);
+          return;
+        }
+
+        const data = snapshot.data();
+
+        setRunnerName(
+          typeof data.name === "string" ? data.name.trim() : "",
+        );
+
+        const averageRating =
+          typeof data.averageRating === "number"
+            ? data.averageRating
+            : null;
+
+        const ratingCount =
+          typeof data.ratingCount === "number" &&
+          Number.isInteger(data.ratingCount) &&
+          data.ratingCount >= 0
+            ? data.ratingCount
+            : 0;
+
+        setRunnerRating(averageRating);
+        setRunnerRatingCount(ratingCount);
+      },
+      (caughtError) => {
+        if (!active) return;
+
+        console.error(
+          "Public Steppa profile subscription failed:",
+          caughtError,
+        );
+
+        setRunnerName("");
+        setRunnerRating(null);
+        setRunnerRatingCount(0);
+      },
+    );
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [assignedRunnerId]);
+
   const handleRespondToCounterOffer = useCallback(
     async (id: string, accept: boolean): Promise<void> => {
       if (!id) {
@@ -150,9 +221,7 @@ export default function CustomerErrandDetailsRoute() {
         );
 
         Alert.alert(
-          accept
-            ? "Counter-offer accepted"
-            : "Counter-offer declined",
+          accept ? "Counter-offer accepted" : "Counter-offer declined",
           accept
             ? "The runner has been assigned to your errand."
             : "You have declined the runner's counter-offer.",
@@ -163,20 +232,43 @@ export default function CustomerErrandDetailsRoute() {
           getErrorMessage(caughtError),
         );
 
-        // Let the child component display the error too.
         throw caughtError;
       }
     },
     [],
   );
 
+  const handleConfirmCompletion = useCallback(
+    async (confirmed: boolean): Promise<void> => {
+      if (!errandId) {
+        throw new Error("Could not identify this errand.");
+      }
+
+      try {
+        await confirmErrandCompletion(errandId, confirmed);
+
+        Alert.alert(
+          confirmed ? "Completion confirmed" : "Problem reported",
+          confirmed
+            ? "Thank you. This errand is now marked completed."
+            : "This errand has been flagged for follow-up.",
+        );
+      } catch (caughtError) {
+        Alert.alert(
+          "Unable to save response",
+          getErrorMessage(caughtError),
+        );
+
+        throw caughtError;
+      }
+    },
+    [errandId],
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-        />
+        <ActivityIndicator size="large" color={colors.primary} />
         <AppText style={styles.message}>
           Loading errand details...
         </AppText>
@@ -193,14 +285,10 @@ export default function CustomerErrandDetailsRoute() {
             onPress={handleBack}
             style={styles.backButton}
           >
-            <AppText style={styles.backText}>
-              ‹ Back
-            </AppText>
+            <AppText style={styles.backText}>‹ Back</AppText>
           </Pressable>
 
-          <AppText variant="heading">
-            Errand details
-          </AppText>
+          <AppText variant="heading">Errand details</AppText>
         </View>
 
         <View style={styles.errorContainer}>
@@ -231,23 +319,21 @@ export default function CustomerErrandDetailsRoute() {
           onPress={handleBack}
           style={styles.backButton}
         >
-          <AppText style={styles.backText}>
-            ‹ Back
-          </AppText>
+          <AppText style={styles.backText}>‹ Back</AppText>
         </Pressable>
 
-        <AppText variant="heading">
-          Errand details
-        </AppText>
+        <AppText variant="heading">Errand details</AppText>
       </View>
 
       <View style={styles.content}>
         <CustomerErrandDetails
           errand={errand}
+          runnerName={runnerName}
+          runnerRating={runnerRating}
+          runnerRatingCount={runnerRatingCount}
           onBack={handleBack}
-          onRespondToCounterOffer={
-            handleRespondToCounterOffer
-          }
+          onRespondToCounterOffer={handleRespondToCounterOffer}
+          onConfirmCompletion={handleConfirmCompletion}
         />
       </View>
     </SafeAreaView>

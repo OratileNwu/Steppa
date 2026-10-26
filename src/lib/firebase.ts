@@ -1,3 +1,4 @@
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth, initializeAuth } from 'firebase/auth';
@@ -6,30 +7,37 @@ import { getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { Platform } from 'react-native';
 
-// Values come from `.env.local` (copy `.env.example`). Never commit real keys.
-const env = process.env;
-export const isFirebaseConfigured = !!env.EXPO_PUBLIC_FIREBASE_API_KEY;
+// Use static environment-variable references so Expo can inline them in web builds.
+export const isFirebaseConfigured =
+    !!process.env.EXPO_PUBLIC_FIREBASE_API_KEY;
+
 if (!isFirebaseConfigured) {
-  console.warn('[steppa] Firebase keys missing – add them to .env.local, then run `npx expo start -c`.');
+    console.warn(
+        '[steppa] Firebase keys missing – add them to .env.local, then run `npx expo start -c`.'
+    );
 }
 
 const firebaseConfig = {
-  // placeholder keeps the app booting (welcome screen + demo still work) when keys are missing
-  apiKey: env.EXPO_PUBLIC_FIREBASE_API_KEY ?? 'missing-api-key',
-  authDomain: env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: env.EXPO_PUBLIC_FIREBASE_APP_ID,
+    apiKey:
+        process.env.EXPO_PUBLIC_FIREBASE_API_KEY ?? 'missing-api-key',
+    authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId:
+        process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
 const isFresh = getApps().length === 0;
 const app = isFresh ? initializeApp(firebaseConfig) : getApp();
 
-// Phones keep the login between launches via AsyncStorage. The web build has its own
-// persistence (and no getReactNativePersistence), so it uses the default getAuth().
+// Phones keep the login between launches via AsyncStorage.
+// The web build uses Firebase's default auth persistence.
 export const auth =
-  isFresh && Platform.OS !== 'web'
-    ? initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) })
-    : getAuth(app);
+    isFresh && Platform.OS !== 'web'
+        ? initializeAuth(app, {
+            persistence: getReactNativePersistence(AsyncStorage),
+        })
+        : getAuth(app);
+
 export const db = getFirestore(app);

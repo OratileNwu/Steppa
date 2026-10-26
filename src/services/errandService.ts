@@ -28,10 +28,11 @@ function assertAvailable(data: any) {
 export async function submitErrand(input: CreateErrandInput): Promise<string> {
   const user = userOrThrow();
   const description = text(input.description, "Errand description");
-  const offeredFee = fee(input.recommendedFee);
+  const recommendedFee = fee(input.recommendedFee);
+  const offeredFee = fee(input.offeredFee);
   const ref = await addDoc(collection(db, "errands"), {
     ...input, title: `${input.category} request`, description,
-    recommendedFee: offeredFee, offeredFee, fee: offeredFee,
+    recommendedFee, offeredFee, fee: offeredFee,
     customerId: user.uid, status: "requested", runnerId: null,
     assignedRunnerId: null, offerStatus: "pending", counterOffer: null,
     statusTimes: { requested: new Date().toISOString() },
@@ -105,8 +106,22 @@ export async function completeErrand(id: string): Promise<void> {
     const snap = await tx.get(ref);
     if (!snap.exists()) throw new Error("Errand not found.");
     const data = snap.data();
-    if (data.runnerId !== user.uid || data.status !== "in_progress") throw new Error("Only the assigned runner can complete an in-progress errand.");
-    tx.update(ref, { status: "completed", statusTimes: { ...(data.statusTimes ?? {}), completed: new Date().toISOString() }, updatedAt: serverTimestamp() });
+    if ((data.runnerId ?? data.assignedRunnerId) !== user.uid || data.status !== "in_progress") throw new Error("Only the assigned runner can report completion for an in-progress errand.");
+    tx.update(ref, { status: "awaiting_customer_confirmation", completionReportedBy: user.uid, completionReportedAt: serverTimestamp(), statusTimes: { ...(data.statusTimes ?? {}), awaiting_customer_confirmation: serverTimestamp() }, updatedAt: serverTimestamp() });
+  });
+}
+
+export async function confirmErrandCompletion(id: string, confirmed: boolean): Promise<void> {
+  const user = userOrThrow(), ref = doc(db, "errands", id);
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) throw new Error("Errand not found.");
+    const data = snap.data();
+    if (data.customerId !== user.uid) throw new Error("Only the customer who requested this errand can respond.");
+    if (data.status !== "awaiting_customer_confirmation") throw new Error("This errand is not awaiting confirmation.");
+    tx.update(ref, confirmed
+      ? { status: "completed", customerConfirmedCompletion: true, customerConfirmedAt: serverTimestamp(), statusTimes: { ...(data.statusTimes ?? {}), completed: serverTimestamp() }, updatedAt: serverTimestamp() }
+      : { status: "completion_disputed", customerConfirmedCompletion: false, customerReportedProblemAt: serverTimestamp(), statusTimes: { ...(data.statusTimes ?? {}), completion_disputed: serverTimestamp() }, updatedAt: serverTimestamp() });
   });
 }
 

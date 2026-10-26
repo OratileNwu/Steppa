@@ -37,6 +37,7 @@ type Errand = {
   fee: number;
   description: string;
   status: ErrandStatus;
+  completedAt?: any;
 };
 
 type DashboardTab = 'available' | 'mine';
@@ -70,16 +71,27 @@ export default function RunnerDashboard() {
     setErrandLoadError(null);
 
 
+// New errands are created as "requested". Keep "pending" for older
+// documents created by earlier versions of the app.
 const availableQuery = query(
   collection(db, "errands"),
-  where("status", "==", "pending"),
-  where("runnerId", "==", null)
+  where("status", "in", ["requested", "pending"]),
+  where("runnerId", "==", null),
+  where("assignedRunnerId", "==", null)
 );
 
 const assignedQuery = query(
   collection(db, "errands"),
   where("runnerId", "==", user.uid),
-  where("status", "in", ["assigned", "in_progress"])
+  where("assignedRunnerId", "==", user.uid),
+  where("status", "in", [
+    "accepted",
+    "assigned",
+    "in_progress",
+    "awaiting_customer_confirmation",
+    "completion_disputed",
+    "completed",
+  ])
 );
 
     const mapErrand = (document: {
@@ -104,9 +116,11 @@ const category: ErrandCategory =
           data.location ??
           'Location not provided',
         distance: '',
-        fee: Number(data.offeredFee ?? data.fee ?? 0),
+        fee: Number(data.agreedFee ?? data.offeredFee ?? data.fee ?? data.recommendedFee ?? 0),
         description: data.description ?? '',
-        status: data.status ?? 'pending',
+        // ErrandCard displays new requests with the legacy pending label.
+        status: data.status === 'requested' ? 'pending' : (data.status ?? 'pending'),
+        completedAt: data.statusTimes?.completed ?? data.customerConfirmedAt ?? data.completedAt,
       };
     };
 
@@ -165,6 +179,16 @@ const category: ErrandCategory =
     };
   }, []);
 
+  const todayEarnings = myErrands
+    .filter((errand) => {
+      if (errand.status !== 'completed') return false;
+      const raw = errand.completedAt;
+      const date = raw?.toDate ? raw.toDate() : raw ? new Date(raw) : null;
+      return date instanceof Date && !Number.isNaN(date.getTime()) &&
+        date.toDateString() === new Date().toDateString();
+    })
+    .reduce((total, errand) => total + Math.max(0, Number(errand.fee) || 0), 0);
+
   const filteredErrands = availableErrands.filter((errand) => {
     if (selectedCategory === 'All tasks') {
       return true;
@@ -178,7 +202,7 @@ const category: ErrandCategory =
 
 const handleViewErrand = (errand: Errand) => {
   router.push({
-pathname: "/(app)/customer-errand-details", 
+    pathname: "/runner-errand-details",
     params: { id: errand.id },
   });
 };
@@ -295,6 +319,24 @@ pathname: "/(app)/customer-errand-details",
             </View>
           </AppCard>
 
+          {/* SOS PROTOTYPE — visible UI only; no alert is sent yet */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="SOS emergency prototype"
+            onPress={() => Alert.alert(
+              'SOS is a prototype',
+              'This button is not connected to emergency services or runner alerts yet. If you are in immediate danger, call your local emergency number now.'
+            )}
+            style={styles.sosButton}
+          >
+            <Ionicons name="alert-circle" size={25} color="#FFFFFF" />
+            <View style={styles.sosCopy}>
+              <AppText style={styles.sosTitle}>SOS emergency</AppText>
+              <AppText style={styles.sosSubtitle}>Safety feature preview · not connected yet</AppText>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+          </Pressable>
+
           {/* EARNINGS SUMMARY */}
           <View style={styles.summaryRow}>
             <AppCard style={styles.summaryCard}>
@@ -314,11 +356,11 @@ pathname: "/(app)/customer-errand-details",
                 variant="heading"
                 style={styles.summaryValue}
               >
-                R —
+                {`R ${todayEarnings.toFixed(2)}`}
               </AppText>
 
               <AppText variant="small">
-                Earnings not available yet
+                Only customer-confirmed completed errands count
               </AppText>
             </AppCard>
 
@@ -339,14 +381,29 @@ pathname: "/(app)/customer-errand-details",
                 variant="heading"
                 style={styles.summaryValue}
               >
-                —
+                {myErrands.filter((errand) => errand.status === "completed").length}
               </AppText>
 
               <AppText variant="small">
-                Data not available yet
+                Completed errands assigned to you
               </AppText>
             </AppCard>
           </View>
+
+          {activeTab === 'available' && myErrands.some((e) => ['accepted', 'assigned', 'in_progress', 'awaiting_customer_confirmation', 'completion_disputed'].includes(e.status)) ? (
+            <AppCard>
+              <AppText variant="heading">Your active errands</AppText>
+              {myErrands.filter((e) => ['accepted', 'assigned', 'in_progress', 'awaiting_customer_confirmation', 'completion_disputed'].includes(e.status)).slice(0, 3).map((errand) => (
+                <Pressable key={errand.id} onPress={() => handleViewErrand(errand)} style={{ paddingVertical: spacing.sm }} accessibilityRole="button">
+                  <AppText>{errand.title}</AppText>
+                  <AppText variant="secondary">{String(errand.status).replaceAll('_', ' ')}</AppText>
+                </Pressable>
+              ))}
+              <Pressable onPress={() => setActiveTab('mine')} accessibilityRole="button">
+                <AppText style={styles.viewButtonText}>View all my errands</AppText>
+              </Pressable>
+            </AppCard>
+          ) : null}
 
           {/* SECTION HEADER */}
           <View style={styles.sectionHeading}>
@@ -674,6 +731,20 @@ const styles = StyleSheet.create({
   statusTitle: {
     fontSize: typography.subtitle,
   },
+
+  sosButton: {
+    minHeight: 68,
+    borderRadius: radius.md,
+    backgroundColor: '#C62828',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  sosCopy: { flex: 1, gap: 2 },
+  sosTitle: { color: '#FFFFFF', fontWeight: '800', fontSize: typography.body },
+  sosSubtitle: { color: '#FFFFFF', fontSize: typography.small },
 
   summaryRow: {
     flexDirection: 'row',
