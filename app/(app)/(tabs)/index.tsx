@@ -77,10 +77,11 @@ export default function HomeScreen() {
       stopErrands = onSnapshot(
         customerQuery,
         (snapshot) => {
-          const customerErrands = snapshot.docs.map((document) => ({
-            id: document.id,
-            ...document.data(),
-          }));
+            const customerErrands: (Record<string, any> & { id: string })[] =
+                snapshot.docs.map((document) => ({
+                    ...document.data(),
+                    id: document.id,
+                }));
           const active = customerErrands
             .filter((item) => ACTIVE_STATUSES.has(String(item.status)))
             .sort((a, b) => {

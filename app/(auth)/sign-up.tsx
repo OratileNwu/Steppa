@@ -103,6 +103,12 @@ export default function SignUpScreen() {
         createdAt: serverTimestamp(),
         
       });
+await setDoc(doc(db, 'publicProfiles', createdUser.uid), {
+  name: form.name.trim(),
+  averageRating: 0,
+  ratingCount: 0,
+});
+
       router.replace('/entry');
 
       // The root layout will admit the authenticated user after this.

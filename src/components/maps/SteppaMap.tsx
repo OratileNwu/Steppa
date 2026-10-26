@@ -1,3 +1,5 @@
+
+import type { SteppaMapProps } from "./types";
 import { Linking, StyleSheet, View } from "react-native";
 import { useState } from "react";
 
@@ -12,80 +14,94 @@ import { spacing } from "@/theme";
  * maps app. It intentionally does not claim to provide live Steppa GPS tracking.
  */
 export default function SteppaMap({
-  initialCollection = "",
-  initialDestination = "",
-  queueOnly = false,
-}: {
-  initialCollection?: string;
-  initialDestination?: string;
-  queueOnly?: boolean;
-}) {
-  const [error, setError] = useState("");
+    category = "Errand",
+    initialCollection = "",
+    initialDestination = "",
+    queueOnly = false,
+}: SteppaMapProps) {
+    const [error, setError] = useState("");
 
-  const collection = initialCollection.trim();
-  const destination = initialDestination.trim();
+    const collection = initialCollection.trim();
+    const destination = initialDestination.trim();
 
-  async function openDirections() {
-    if (!collection) {
-      setError("Add a collection or queue location before opening directions.");
-      return;
+    async function openDirections() {
+        if (!collection) {
+            setError("Add a collection or queue location before opening directions.");
+            return;
+        }
+
+        const url =
+            destination && !queueOnly
+                ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
+                    collection,
+                )}&destination=${encodeURIComponent(destination)}`
+                : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    collection,
+                )}`;
+
+        try {
+            setError("");
+            await Linking.openURL(url);
+        } catch {
+            setError(
+                "Could not open a maps app on this device. Check that a browser or maps app is installed.",
+            );
+        }
     }
 
-    const url = destination && !queueOnly
-      ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(collection)}&destination=${encodeURIComponent(destination)}`
-      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(collection)}`;
+    return (
+        <AppCard>
+            <View style={styles.container}>
+                <AppText variant="heading">{category} route</AppText>
 
-    try {
-      setError("");
-      await Linking.openURL(url);
-    } catch {
-      setError("Could not open a maps app on this device. Check that a browser or maps app is installed.");
-    }
-  }
+                <AppText variant="secondary">
+                    Review the saved addresses below. Open your phone's maps app for
+                    navigation.
+                </AppText>
 
-  return (
-    <AppCard>
-      <View style={styles.container}>
-        <AppText variant="heading">Errand route</AppText>
-        <AppText variant="secondary">
-          Review the saved addresses below. Open your phone's maps app for navigation.
-        </AppText>
+                <View style={styles.location}>
+                    <AppText variant="small">COLLECTION / QUEUE LOCATION</AppText>
+                    <AppText>
+                        {collection || "No collection location supplied"}
+                    </AppText>
+                </View>
 
-        <View style={styles.location}>
-          <AppText variant="small">COLLECTION / QUEUE LOCATION</AppText>
-          <AppText>{collection || "No collection location supplied"}</AppText>
-        </View>
+                {!queueOnly ? (
+                    <View style={styles.location}>
+                        <AppText variant="small">DESTINATION</AppText>
+                        <AppText>
+                            {destination || "No destination supplied"}
+                        </AppText>
+                    </View>
+                ) : null}
 
-        {!queueOnly ? (
-          <View style={styles.location}>
-            <AppText variant="small">DESTINATION</AppText>
-            <AppText>{destination || "No destination supplied"}</AppText>
-          </View>
-        ) : null}
+                <PrimaryButton
+                    title="Open directions"
+                    onPress={() => {
+                        void openDirections();
+                    }}
+                />
 
-        <PrimaryButton
-          title="Open directions"
-          onPress={() => { void openDirections(); }}
-        />
+                {error ? <AppText variant="error">{error}</AppText> : null}
 
-        {error ? <AppText variant="error">{error}</AppText> : null}
-
-        <AppText variant="small">
-          Native live location sharing and an embedded phone map are not connected yet.
-          No distance or travel time is estimated here.
-        </AppText>
-      </View>
-    </AppCard>
-  );
+                <AppText variant="small">
+                    Native live location sharing and an embedded phone map are not
+                    connected yet. No distance or travel time is estimated here.
+                </AppText>
+            </View>
+        </AppCard>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: { gap: spacing.md },
-  location: {
-    gap: spacing.xs,
-    padding: spacing.md,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#D8DEE8",
-  },
+    container: {
+        gap: spacing.md,
+    },
+    location: {
+        gap: spacing.xs,
+        padding: spacing.md,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#D8DEE8",
+    },
 });
